@@ -33,28 +33,41 @@ satellite_files <- setNames(
 )
 
 #### Helper: process & aggregate monitor data by station-year
-process_monitor_data <- function(df, yr) {
-  df %>%
-    filter(Method.Code %in% c(236,238,736,738)) %>%
-    mutate(Type = ifelse(Method.Code %in% c(236,238), "Old", "New"),
-           Year = yr) %>%
-    group_by(Longitude, Latitude, Year, Type) %>%
-    summarize(Arithmetic.Mean = mean(Arithmetic.Mean, na.rm=TRUE), .groups="drop")
+# Step 1: Process Monitor Data
+process_old_and_updated_monitor_data_restricted <- function(data, year) {
+  # Separate Old and New Monitors
+  old_monitor_data_restricted <- data[data$Method.Code %in% c(236, 238), ]
+  new_monitor_data_restricted <- data[data$Method.Code %in% c(736, 738), ]
+  
+  # Add Year and Type Columns
+  old_monitor_data_restricted$Year <- year
+  old_monitor_data_restricted$Type <- "Old"
+  
+  new_monitor_data_restricted$Year <- year
+  new_monitor_data_restricted$Type <- "New"
+  
+  rbind(old_monitor_data_restricted, new_monitor_data_restricted)  # Combine Old and New
 }
 
 #### Load & combine monitor data
-monitor_data <- bind_rows(
-  lapply(seq_along(years), function(i) {
-    df <- read.csv(monitor_files[i])
-    process_monitor_data(df, years[i])
-  })
-)
+# Load Monitor Data for Each Year
+years <- 2017:2022
+
+file_paths <- paste0(data_dir, "/daily_88101_", years, ".csv")
+
+monitor_data_restricted <- do.call(rbind, lapply(seq_along(years), function(i) {
+  data <- read.csv(file_paths[i])
+  process_old_and_updated_monitor_data_restricted(data, years[i])
+}))
+
+# Add a 'Year' column
+monitor_data_restricted$Year <- as.numeric(substr(monitor_data_restricted$Date.Local, 1, 4))
 
 #### Trim percentiles
-pct95 <- quantile(monitor_data$Arithmetic.Mean, 0.95, na.rm=TRUE)
-pct99 <- quantile(monitor_data$Arithmetic.Mean, 0.99, na.rm=TRUE)
-monitor_95 <- filter(monitor_data, Arithmetic.Mean <= pct95)
-monitor_99 <- filter(monitor_data, Arithmetic.Mean <= pct99)
+pct95 <- quantile(monitor_data_restricted$Arithmetic.Mean, 0.95, na.rm=TRUE)
+pct99 <- quantile(monitor_data_restricted$Arithmetic.Mean, 0.99, na.rm=TRUE)
+monitor_95 <- filter(monitor_data_restricted, Arithmetic.Mean <= pct95)
+monitor_99 <- filter(monitor_data_restricted, Arithmetic.Mean <= pct99)
 
 #### Satellite data → Data frames list
 sat_list <- lapply(satellite_files, function(f) {
@@ -67,7 +80,7 @@ sat_list <- lapply(satellite_files, function(f) {
 #### Build overlayed_data_list
 overlayed_data_list <- list()
 for (yr in years) {
-  mon_sub <- filter(monitor_data, Year == yr)
+  mon_sub <- filter(monitor_data_restricted, Year == yr)
   
   # Load satellite raster
   sat_r <- raster(get(load(satellite_files[[as.character(yr)]])))
@@ -90,7 +103,7 @@ for (yr in years) {
   
   # Stack and extract to dataframe
   stk <- stack(r_old, r_new, sat_r)
-  names(stk) <- c("Old_Monitor_Data", "New_Monitor_Data", "Satellite")
+  names(stk) <- c("Old_monitor_data_restricted", "New_monitor_data_restricted", "Satellite")
   
   df <- as.data.frame(stk, xy = TRUE, na.rm = TRUE)
   df$Year <- yr
@@ -98,7 +111,7 @@ for (yr in years) {
 }
 final_data <- bind_rows(overlayed_data_list)
 final_long <- pivot_longer(final_data,
-                           cols = c("Old_Monitor_Data", "New_Monitor_Data"),
+                           cols = c("Old_monitor_data_restricted", "New_monitor_data_restricted"),
                            names_to = "Source", values_to = "Monitor_PM2.5")
 
 #### Plot Functions
@@ -171,7 +184,7 @@ tplot_scatter <- function(df, fn) {
     geom_smooth(method="lm", se=FALSE,
                 aes(group=Source, color=Source)) +
     geom_abline(slope=1, intercept=0, linetype="dashed",color="black") +
-    scale_color_manual(values=c(Old_Monitor_Data=cbPalette[6],New_Monitor_Data=cbPalette[7]),
+    scale_color_manual(values=c(Old_monitor_data_restricted=cbPalette[6],New_monitor_data_restricted=cbPalette[7]),
                        labels=c("Old Monitor","New Monitor")) +
     labs(x="Satellite PM2.5 (µg/m³)", y="Monitor PM2.5 (µg/m³)") +
     theme_classic(base_family="CMU Serif", base_size=25) +
@@ -182,18 +195,18 @@ tplot_scatter <- function(df, fn) {
 #### Execute Plots
 plot_density(monitor_99,    "density_plot_99.png")
 plot_density(monitor_95,    "density_plot_95.png")
-plot_annual_averages(monitor_data, "bar_plot.png")
-plot_annual_differences(monitor_data, "differences_bar_plot.png")
-old_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type=="Old"], probs=seq(0,1,0.01), na.rm=TRUE)
-new_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type=="New"], probs=seq(0,1,0.01), na.rm=TRUE)
+plot_annual_averages(monitor_data_restricted, "bar_plot.png")
+plot_annual_differences(monitor_data_restricted, "differences_bar_plot.png")
+old_q <- quantile(monitor_data_restricted$Arithmetic.Mean[monitor_data_restricted$Type=="Old"], probs=seq(0,1,0.01), na.rm=TRUE)
+new_q <- quantile(monitor_data_restricted$Arithmetic.Mean[monitor_data_restricted$Type=="New"], probs=seq(0,1,0.01), na.rm=TRUE)
 tplot_qq(old_q, new_q,      "qq_plot.png")
 tplot_scatter(final_long,   "scatter_plot.png")
                   c(cbPalette[6], cbPalette[7])
   
   # ---- Regression Analysis & Table via Stargazer ----
   # Fit linear models by Source
-  old_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "Old_Monitor_Data"))
-  new_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "New_Monitor_Data"))
+  old_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "Old_monitor_data_restricted"))
+  new_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "New_monitor_data_restricted"))
   
   # Output regression table in LaTeX
   stargazer(
@@ -219,47 +232,45 @@ tplot_scatter(final_long,   "scatter_plot.png")
   
 # Filters to only monitors that were updated
 
-# Ensure monitor_data is a data frame for dplyr operations
-monitor_data_df <- as.data.frame(monitor_data)
+# Read in the full monitor data
+  years <- 2017:2022
+  file_paths <- paste0(data_dir, "/daily_88101_", years, ".csv")
   
+  monitor_data_full <- do.call(rbind, lapply(seq_along(years), function(i) {
+    df <- read.csv(file_paths[i])
+    df$Year <- years[i]
+    df
+  }))
   
-  all_monitors <- monitor_data_df %>%
+  #### compute monitors per site
+  count_site_rows <- function(df) {
+    df %>%
+      mutate(
+        SiteID = sprintf("%02d%03d%04d",
+                         State.Code, County.Code, Site.Num)
+      ) %>%
+      group_by(SiteID) %>%
+      tally(name = "rows") %>%
+      ungroup()
+  }
+  
+  full_counts     <- count_site_rows(monitor_data_full)      %>% rename(full_rows = rows)
+  restricted_counts <- count_site_rows(monitor_data_restricted) %>% rename(restricted_rows = rows)
+  
+  #### 4. Join and compare ####
+  comparison <- full_counts %>%
+    full_join(restricted_counts, by = "SiteID") %>%
+    replace_na(list(full_rows = 0, restricted_rows = 0)) %>%
     mutate(
-      SiteID = sprintf("%02d%03d%04d",
-                       State.Code,
-                       County.Code,
-                       Site.Num)
+      dropped_rows = full_rows - restricted_rows,
+      kept_pct    = restricted_rows / full_rows * 100
     )
   
-  # Figure out which sites have both old & new methods
-  old_codes <- c(236, 238)
-  new_codes <- c(736, 738)
+  # Summary:
+  total_full     <- sum(full_counts$full_rows)
+  total_restrict <- sum(restricted_counts$restricted_rows)
+  total_dropped  <- total_full - total_restrict
   
-  site_method_flags <- all_monitors %>%
-    filter(Method.Code %in% c(old_codes, new_codes)) %>%
-    distinct(SiteID, Method.Code) %>%
-    mutate(Method.Type = if_else(
-      Method.Code %in% old_codes, "Old", "New"
-    )) %>%
-    distinct(SiteID, Method.Type) %>%
-    count(SiteID) %>%
-    filter(n == 2)  # only sites with both Old & New ever
-  
-  # Count original monitors
-  num_orig_monitors <- nrow(all_monitors)
-  
-  # Filter to only monitors at updated sites
-  monitor_data_updated_only <- all_monitors %>%
-    filter(SiteID %in% site_method_flags$SiteID)
-  
-  # Count updated monitors
-  num_updated_monitors <- nrow(monitor_data_updated_only)
-  
-  # Compute dropped
-  num_dropped_monitors <- num_orig_monitors - num_updated_monitors
-  
-  # Print everything
-  cat("Total monitors (rows) originally:", num_orig_monitors, "\n")
-  cat("Monitors at updated sites:       ", num_updated_monitors, "\n")
-  cat("Monitors dropped:                ", num_dropped_monitors, "\n")
-  
+  cat("Total rows in full data:            ", total_full,     "\n")
+  cat("Total rows in restricted data:      ", total_restrict, "\n")
+  cat("Total rows dropped by restriction:  ", total_dropped,  "\n")
