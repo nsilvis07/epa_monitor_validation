@@ -1,35 +1,40 @@
-################################################################################
-# Script Name: Monitor vs Satellite PM2.5 Analysis
+# Monitor vs Satellite PM2.5 Analysis
+
 # Author: Nick Silvis
 # Date Created: 2025-06-10
 # Last Modified: 2025-06-10
-#
-# Description:
-# This script compares old and new ground monitor PM2.5 readings with satellite-
+
+
+# Purpose: This script compares old and new ground monitor PM2.5 readings with satellite-
 # derived PM2.5 estimates across the contiguous United States from 2017 to 2022.
 # It includes data processing, percentile trimming, overlay and raster alignment,
-# density plots, bar plots, QQ plots, regression outputs, and spatial maps.
-################################################################################
+# density plots, bar plots, QQ plots, and regressions. 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # Load Required Libraries Using pacman
-# ─────────────────────────────────────────────────────────────────────────────
+
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris, cowplot,
   grid, gtable, stargazer, smoothr
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Define Directories and User Parameters
-# ─────────────────────────────────────────────────────────────────────────────
-dropbox_base <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification"
 
-data_dir <- file.path(paste0(dropbox_base, "/Data"))
-
-output_dir <- file.path(paste0(dropbox_base, "/Output"))
+####### User-Defined Parameters ######
 
 years <- 2017:2023
+
+###### Defining Directories ######
+
+
+main_dir <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification"
+
+data_dir <- file.path(paste0(main_dir, "/Data"))
+
+output_dir <- file.path(paste0(main_dir, "/Output"))
+
+###### Reading in Data ######
+
 monitor_files <- paste0(data_dir, "/daily_88101_", years, ".csv")
 
 satellite_files <- list(
@@ -44,13 +49,10 @@ satellite_files <- list(
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Define Functions
-# ─────────────────────────────────────────────────────────────────────────────
+###### Define Functions ######
 
-# ────────────────────────────────────────────────────────────────────────────
-# 2) Data-prep helper
-# ────────────────────────────────────────────────────────────────────────────
+# Processes monitor data
+
 process_monitor_data <- function(df, yr) {
   old <- df[df$Method.Code %in% c(236, 238), ]
   new <- df[df$Method.Code %in% c(736, 738), ]
@@ -59,9 +61,7 @@ process_monitor_data <- function(df, yr) {
   rbind(old, new)
 }
 
-# ────────────────────────────────────────────────────────────────────────────
-# 3) Legend helpers
-# ────────────────────────────────────────────────────────────────────────────
+
 create_custom_legend <- function(filename, labels, colours, linetypes = NULL) {
   leg_dat <- data.frame(label = factor(labels, levels = labels),
                         colour = colours,
@@ -92,9 +92,8 @@ create_custom_legend_map <- function(filename) {
   )
 }
 
-# ────────────────────────────────────────────────────────────────────────────
-# 4) Plot helpers
-# ────────────────────────────────────────────────────────────────────────────
+# Creates density plot
+
 plot_density <- function(df, filename) {
   p <- ggplot(df, aes(Arithmetic.Mean, fill = Type, colour = Type)) +
     geom_density(alpha = 0.3, linewidth = 0.8) +
@@ -109,6 +108,8 @@ plot_density <- function(df, filename) {
   ggsave(file.path(output_dir, filename), p, width = 15, height = 10, dpi = 300)
   invisible(p)
 }
+
+# Creates annual averages plot
 
 plot_annual_averages <- function(df, filename) {
   avg <- df %>% group_by(Year, Type) %>%
@@ -125,6 +126,8 @@ plot_annual_averages <- function(df, filename) {
   ggsave(file.path(output_dir, filename), p, width = 15, height = 10, dpi = 300)
   invisible(p)
 }
+
+# Creates annual differences plot
 
 plot_annual_differences <- function(df, filename) {
   diff <- df %>% group_by(Year) %>%
@@ -145,6 +148,8 @@ plot_annual_differences <- function(df, filename) {
   invisible(p)
 }
 
+# Creates QQ plot
+
 plot_qq <- function(old_q, new_q, filename) {
   qq_df <- tibble(Old = old_q, New = new_q)
   p <- ggplot(qq_df, aes(Old, New)) +
@@ -156,6 +161,8 @@ plot_qq <- function(old_q, new_q, filename) {
   ggsave(file.path(output_dir, filename), p, width = 15, height = 10, dpi = 300)
   invisible(p)
 }
+
+# Creates scatter plot with lines of best fit
 
 plot_scatter_with_lm <- function(df, filename) {
   p <- ggplot(df, aes(Satellite, Monitor_PM2.5, colour = Source)) +
@@ -172,9 +179,8 @@ plot_scatter_with_lm <- function(df, filename) {
   invisible(p)
 }
 
-# ────────────────────────────────────────────────────────────────────────────
-# 5) Map helpers
-# ────────────────────────────────────────────────────────────────────────────
+# Plots diagnostic maps
+
 plot_map <- function(data_sf, value_column, title, filename, boundaries_sf) {
   p <- ggplot() +
     geom_sf(data = data_sf, aes(colour = !!sym(value_column)), size = 0.5) +
@@ -193,6 +199,7 @@ plot_map <- function(data_sf, value_column, title, filename, boundaries_sf) {
   invisible(p)
 }
 
+
 plot_satellite_map <- function(sat_sf, boundaries_sf, filename) {
   p <- ggplot() +
     geom_sf(data = sat_sf, aes(colour = Satellite.PM2.5), size = 0.5) +
@@ -210,33 +217,34 @@ plot_satellite_map <- function(sat_sf, boundaries_sf, filename) {
   invisible(p)
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# State boundaries (contiguous U.S.)
-# ─────────────────────────────────────────────────────────────────────────────
-# Load TIGER/CB 2023 state boundaries from your local Data folder
+
+###### Read in and Process Monitor Data ######
+
+# Load TIGER/CB 2023 state boundaries 
+
 us_states <- st_read(
   file.path(data_dir, "cb_2023_us_state_500k", "cb_2023_us_state_500k.shp"),
-  quiet = TRUE       # suppress verbose output (optional)
+  quiet = TRUE 
 )
 
 # Keep contiguous-U.S. states only
+
 contiguous_us_states <- us_states %>%
   dplyr::filter(!STUSPS %in% c("AK", "HI", "PR", "VI", "GU", "MP", "AS", "UM"))
 
+# Reads in monitor data
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Read in and Process Monitor Data
-# ─────────────────────────────────────────────────────────────────────────────
 monitor_data <- do.call(rbind, lapply(seq_along(years), function(i) {
   df <- read.csv(monitor_files[i])
   process_monitor_data(df, years[i])
 }))
 
+# Makes the year column of monitor_data numeric
+
 monitor_data$Year <- as.numeric(substr(monitor_data$Date.Local, 1, 4))
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Read and Format Satellite Data
-# ─────────────────────────────────────────────────────────────────────────────
+
 satellite_data_list <- lapply(satellite_files, function(file) {
   get(load(file))
 })
@@ -247,9 +255,8 @@ satellite_data_list <- lapply(satellite_data_list, function(sat_data) {
   sat_df
 })
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Build overlayed_data_list  →  final_data  →  final_data_long
-# ─────────────────────────────────────────────────────────────────────────────
+
 overlayed_data_list <- list()
 
 years_available <- intersect(
@@ -260,7 +267,7 @@ years_available <- intersect(
 for (yr in years_available) {
   message("Processing Year: ", yr)
   
-  ## ---------- 1. MONITOR DATA ----------
+  ## ---------- MONITOR DATA ----------
   mon_path <- monitor_files[years == yr]
   mon_df   <- tryCatch(read.csv(mon_path), error = \(e) NULL)
   if (is.null(mon_df) || nrow(mon_df) == 0) {
@@ -273,12 +280,12 @@ for (yr in years_available) {
   mon_df$Longitude <- as.numeric(mon_df$Longitude)
   mon_df$Latitude  <- as.numeric(mon_df$Latitude)
   
-  ## ---------- 2. SATELLITE RASTER ----------
+  ## ---------- SATELLITE RASTER ----------
   sat_obj <- get(load(satellite_files[[as.character(yr)]]))     # loads raster*
   sat_rast <- raster::raster(sat_obj)                           # coerce to raster
   raster::crs(sat_rast) <- "+proj=longlat +datum=WGS84"
   
-  ## ---------- 3. RASTERIZE MONITOR MEANS ----------
+  ## ---------- RASTERIZE MONITOR MEANS ----------
   sp::coordinates(mon_df) <- ~ Longitude + Latitude
   sp::proj4string(mon_df) <- sp::CRS("+proj=longlat +datum=WGS84")
   
@@ -287,7 +294,7 @@ for (yr in years_available) {
   r_new <- raster::rasterize(mon_df, sat_rast, field = "Arithmetic.Mean",
                              subset = mon_df$Type == "New", fun = mean, na.rm = TRUE)
   
-  ## ---------- 4. STACK & EXTRACT ----------
+  ## ---------- STACK & EXTRACT ----------
   stk <- raster::stack(r_old, r_new, sat_rast)
   names(stk) <- c("Old_Monitor_Data", "New_Monitor_Data_Data", "Satellite")
   
@@ -309,14 +316,10 @@ final_data_long <- final_data |>
   dplyr::filter(!is.na(Monitor_PM2.5), !is.na(Satellite))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Main Analyses (Density Plots, Overlay, Regression, Maps, etc.)
-# ─────────────────────────────────────────────────────────────────────────────
-# ─────────────────────────────────────────────────────────────────────────────
-# Main Analysis Code
-# ─────────────────────────────────────────────────────────────────────────────
+###### Main Analyses (Density Plots, Overlay, Regression) ######
 
 # Trim to 95th and 99th percentiles
+
 percentile_95 <- quantile(monitor_data$Arithmetic.Mean, 0.95, na.rm = TRUE)
 percentile_99 <- quantile(monitor_data$Arithmetic.Mean, 0.99, na.rm = TRUE)
 
@@ -325,16 +328,15 @@ monitor_data_99 <- monitor_data %>% filter(Arithmetic.Mean <= percentile_99)
 
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1) Density plots
+# Density plots
 plot_density(monitor_data_95, "density_plot_95.png")
 plot_density(monitor_data_99, "density_plot_99.png")
 
-# 2) Yearly bar plot + New–Old difference plot
+# Yearly bar plot + New–Old difference plot
 plot_annual_averages    (monitor_data, "bar_plot.png")
 plot_annual_differences (monitor_data, "differences_bar_plot.png")
 
-# 3) QQ plot (Old vs New quantiles)
+# QQ plot (Old vs New quantiles)
 quantile_probs <- seq(0, 1, 0.01)
 old_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type == "Old"],
                   probs = quantile_probs, na.rm = TRUE)
@@ -342,20 +344,85 @@ new_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type == "New"],
                   probs = quantile_probs, na.rm = TRUE)
 plot_qq(old_q, new_q, "qq_plot.png")
 
-# 4) Scatter + regression lines
+# Scatter + regression lines
 scatter_plot <- plot_scatter_with_lm(final_data_long, "scatter_plot.png")  # returns ggplot (optional)
 create_custom_legend("legend.png",
                      labels  = c("Old Monitor Data", "New Monitor Data"),
                      colours = c(cbPalette[6], cbPalette[7]))
 
-# 5) Regression table (unchanged)
-stargazer(old_model, new_model, type = "latex",
-          title = "Regression Results for Old and New Monitors",
-          label = "tab:regression",
-          dep.var.labels = "Monitor PM2.5",
-          column.labels  = c("Old Monitors", "New Monitors"),
-          covariate.labels = c("Satellite", "Constant"),
-          omit.stat = c("f","ser"),
-          notes = "$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01",
-          notes.align = "l",
-          out = file.path(output_dir, "regression_results_table.tex"))
+# Regression table 
+
+# Run regressions and t-tests
+old_model <- lm(Monitor_PM2.5 ~ Satellite, data = final_data_long %>% filter(Source == "Old_Monitor_Data"))
+new_model <- lm(Monitor_PM2.5 ~ Satellite, data = final_data_long %>% filter(Source == "New_Monitor_Data_Data"))
+
+# Extract regression details
+coef_old <- coef(summary(old_model))["Satellite", "Estimate"]
+se_old <- coef(summary(old_model))["Satellite", "Std. Error"]
+coef_new <- coef(summary(new_model))["Satellite", "Estimate"]
+se_new <- coef(summary(new_model))["Satellite", "Std. Error"]
+
+t_old <- (coef_old - 1) / se_old
+t_new <- (coef_new - 1) / se_new
+
+p_value_old <- 2 * pt(-abs(t_old), df = old_model$df.residual)
+p_value_new <- 2 * pt(-abs(t_new), df = new_model$df.residual)
+
+cat("Old Monitor:\nCoef =", coef_old, "SE =", se_old, "t =", t_old, "p =", p_value_old, "\n")
+cat("New Monitor:\nCoef =", coef_new, "SE =", se_new, "t =", t_new, "p =", p_value_new, "\n")
+
+# Output regression table
+stargazer(
+  old_model, new_model,
+  type = "latex",
+  title = "Regression Results for Old and New Monitors",
+  label = "tab:regression",
+  dep.var.labels = "Monitor PM2.5",
+  column.labels = c("Old Monitors", "New Monitors"),
+  covariate.labels = c("Satellite", "Constant"),
+  omit.stat = c("f", "ser"),
+  notes = "$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01",
+  notes.align = "l",
+  out = file.path(output_dir, "regression_results_table.tex")
+)
+
+
+
+
+
+
+
+
+
+###### Filtering to only monitors with updated data #####
+library(dplyr)
+library(readr)
+
+
+all_monitors <- monitor_data
+
+# Step 2: Create SiteID using underscore-style column names
+all_monitors <- all_monitors %>%
+  mutate(SiteID = sprintf("%02d%03d%04d", State.Code, County.Code, Site.Num))
+
+# Step 3: Identify updated monitors (those that appear with both old and new method codes)
+old_codes <- c(236, 238)
+new_codes <- c(736, 738)
+
+site_method_flags <- all_monitors %>%
+  filter(Method.Code %in% c(old_codes, new_codes)) %>%
+  distinct(SiteID, Method.Code) %>%
+  mutate(Method.Type = case_when(
+    Method.Code %in% old_codes ~ "Old",
+    Method.Code %in% new_codes ~ "New"
+  )) %>%
+  distinct(SiteID, Method.Type) %>%
+  count(SiteID) %>%
+  filter(n == 2)  # Only monitors with both Old and New
+
+# Step 4: Filter full dataset to updated monitors only
+updated_monitors <- all_monitors %>%
+  filter(SiteID %in% site_method_flags$SiteID)
+
+# Step 5: (Optional) Check how many updated sites there are
+cat("Number of updated monitor sites:", length(unique(updated_monitors$SiteID)), "\n")
