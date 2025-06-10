@@ -186,7 +186,7 @@ old_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type=="Old"], probs=
 new_q <- quantile(monitor_data$Arithmetic.Mean[monitor_data$Type=="New"], probs=seq(0,1,0.01), na.rm=TRUE)
 tplot_qq(old_q, new_q,      "qq_plot.png")
 tplot_scatter(final_long,   "scatter_plot.png")
-                  c(cbPalette[6], cbPalette[7]))
+                  c(cbPalette[6], cbPalette[7])
   
   # ---- Regression Analysis & Table via Stargazer ----
   # Fit linear models by Source
