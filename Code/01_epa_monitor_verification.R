@@ -4,7 +4,9 @@
 # Updated: 2025-06-10
 
 # Purpose: Compare old and new ground monitors with satellite PM2.5 estimates,
-#          preserving exact plotting behavior from the original monolithic script.
+# preserving exact plotting behavior from the original monolithic script.
+
+rm(list = ls())
 
 #### Libraries
 if (!require("pacman")) install.packages("pacman")
@@ -216,6 +218,10 @@ tplot_scatter(final_long,   "scatter_plot.png")
   
   
 # Filters to only monitors that were updated
+
+# Ensure monitor_data is a data frame for dplyr operations
+monitor_data_df <- as.data.frame(monitor_data)
+  
   
   all_monitors <- monitor_data_df %>%
     mutate(
