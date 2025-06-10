@@ -214,4 +214,51 @@ create_custom_legend <- function(filename, labels, colours) {
   )
   cat("LaTeX regression table saved to", file.path(output_dir, "regression_results_table.tex"), "
 ")
+
+  
+  
+  
+  
+  
+# Filters to only monitors that were updated
+  
+  all_monitors <- monitor_data_df %>%
+    mutate(
+      SiteID = sprintf("%02d%03d%04d",
+                       State.Code,
+                       County.Code,
+                       Site.Num)
+    )
+  
+  # Figure out which sites have both old & new methods
+  old_codes <- c(236, 238)
+  new_codes <- c(736, 738)
+  
+  site_method_flags <- all_monitors %>%
+    filter(Method.Code %in% c(old_codes, new_codes)) %>%
+    distinct(SiteID, Method.Code) %>%
+    mutate(Method.Type = if_else(
+      Method.Code %in% old_codes, "Old", "New"
+    )) %>%
+    distinct(SiteID, Method.Type) %>%
+    count(SiteID) %>%
+    filter(n == 2)  # only sites with both Old & New ever
+  
+  # Count original monitors
+  num_orig_monitors <- nrow(all_monitors)
+  
+  # Filter to only monitors at updated sites
+  monitor_data_updated_only <- all_monitors %>%
+    filter(SiteID %in% site_method_flags$SiteID)
+  
+  # Count updated monitors
+  num_updated_monitors <- nrow(monitor_data_updated_only)
+  
+  # Compute dropped
+  num_dropped_monitors <- num_orig_monitors - num_updated_monitors
+  
+  # Print everything
+  cat("Total monitors (rows) originally:", num_orig_monitors, "\n")
+  cat("Monitors at updated sites:       ", num_updated_monitors, "\n")
+  cat("Monitors dropped:                ", num_dropped_monitors, "\n")
   
