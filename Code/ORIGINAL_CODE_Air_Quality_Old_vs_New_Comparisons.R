@@ -68,7 +68,8 @@ create_custom_legend <- function(output_filename, legend_labels, legend_colors, 
 
 # Load Monitor Data for Each Year
 years <- 2017:2023
-file_paths <- paste0("~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/daily_88101_", years, ".csv")
+
+file_paths <- paste0("~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/daily_88101_", years, ".csv")
 
 monitor_data <- do.call(rbind, lapply(seq_along(years), function(i) {
   data <- read.csv(file_paths[i])
@@ -100,11 +101,11 @@ all_new_data <- monitor_data_95 %>% filter(Type == "New")
 
 # Step 2: Load Satellite Data
 satellite_files <- list(
-  "2017" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda",
-  "2018" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201801-201812.rda",
-  "2019" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201901-201912.rda",
-  "2020" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.202001-202012.rda",
-  "2021" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.202101-202112.rda"
+  "2017" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda",
+  "2018" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201801-201812.rda",
+  "2019" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201901-201912.rda",
+  "2020" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.202001-202012.rda",
+  "2021" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.202101-202112.rda"
 )
 
 satellite_data_list <- lapply(satellite_files, function(file) {
@@ -158,7 +159,7 @@ density_plot_99<- ggplot(monitor_data_99, aes(x = Arithmetic.Mean, fill = Type, 
 
 # Save the plot 
 ggsave(
-  filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/density_plot_99.png",
+  filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/density_plot_99.png",
   plot = density_plot_99,
   width = 15,
   height = 10,
@@ -193,7 +194,7 @@ density_plot_95 <- ggplot(monitor_data_95, aes(x = Arithmetic.Mean, fill = Type,
 
 # Save the plot
 ggsave(
-  filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/density_plot_95.png",
+  filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/density_plot_95.png",
   plot = density_plot_95,
   width = 15,
   height = 10,
@@ -342,13 +343,13 @@ plot_annual_differences <- function(data, output_filename) {
 # Example usage
 bar_plot <- plot_annual_averages(
   monitor_data_df, 
-  "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/bar_plot.png"
+  "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/bar_plot.png"
 )
 print(bar_plot)
 
 diff_bar_plot <- plot_annual_differences(
   monitor_data_df, 
-  "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/differences_bar_plot.png"
+  "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/differences_bar_plot.png"
 )
 print(diff_bar_plot)
 
@@ -357,7 +358,7 @@ print(diff_bar_plot)
 # Generate the annual differences plot
 diff_bar_plot <- plot_annual_differences(
   monitor_data_df, 
-  "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/differences_bar_plot.png"
+  "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/differences_bar_plot.png"
 )
 print(diff_bar_plot)
 
@@ -366,14 +367,14 @@ print(diff_bar_plot)
 
 
 # File paths for the monitor and satellite data
-monitor_files <- paste0("~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/daily_88101_", 2017:2022, ".csv")
+monitor_files <- paste0("~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/daily_88101_", 2017:2022, ".csv")
 satellite_files <- list(
-  "2017" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda",
-  "2018" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201801-201812.rda",
-  "2019" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201901-201912.rda",
-  "2020" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.202001-202012.rda",
-  "2021" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.202101-202112.rda",
-  "2022" = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.202201-202212.rda"
+  "2017" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda",
+  "2018" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201801-201812.rda",
+  "2019" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201901-201912.rda",
+  "2020" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.202001-202012.rda",
+  "2021" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.202101-202112.rda",
+  "2022" = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.202201-202212.rda"
 )
 
 # Step 1: Process Monitor Data
@@ -495,7 +496,7 @@ scatter_plot <- ggplot(final_data_long, aes(x = Satellite, y = Monitor_PM2.5, co
 
 # Save the Scatter Plot without Legend
 ggsave(
-  filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/scatter_plot.png",
+  filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/scatter_plot.png",
   plot = scatter_plot,
   width = 15,
   height = 10,
@@ -503,7 +504,7 @@ ggsave(
 )
 
 create_custom_legend(
-  output_filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/legend.png",
+  output_filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/legend.png",
   legend_labels = c("Old Monitor Data", "New Monitor Data"),
   legend_colors = c(cbPalette[6], cbPalette[7])
 )
@@ -573,7 +574,7 @@ plot_qq <- function(old_quantiles, new_quantiles, output_filename) {
 qq_plot <- plot_qq(
   old_quantiles, 
   new_quantiles, 
-  "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/qq_plot.png"
+  "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/qq_plot.png"
 )
 print(qq_plot)
 
@@ -638,10 +639,10 @@ stargazer(
   omit.stat = c("f", "ser"),
   notes = "$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01",
   notes.align = "l",
-  out = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/regression_results_table.tex"
+  out = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/regression_results_table.tex"
 )
 
-cat("LaTeX table saved to '~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/regression_results_table.tex'\n")
+cat("LaTeX table saved to '~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/regression_results_table.tex'\n")
 
 
 
@@ -738,13 +739,13 @@ plot_map(
   data_sf = overlay_2017_sf,
   value_column = "Old_Monitor_Data",
   title = "Monitor Data for 2017",
-  output_filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/monitor_map.png",
+  output_filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/monitor_map.png",
   boundaries_sf = contiguous_us_states
 )
 
 # Create custom legend
 create_custom_legend_map(
-  output_filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/map_legend.png"
+  output_filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/map_legend.png"
 )
 
 
@@ -774,7 +775,7 @@ library(dplyr)
 library(tigris)
 
 # Load the satellite data
-satellite_data <- load("~/The Lab Dropbox/Nick Silvis/Air Quality Project/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda")
+satellite_data <- load("~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Data/V5GL04.HybridPM25.NorthAmerica.201701-201712.rda")
 
 
 
@@ -832,5 +833,5 @@ plot_satellite_map <- function(satellite_data_sf, state_boundaries_sf, output_fi
 plot_satellite_map(
   satellite_data_sf = satellite_sf,
   state_boundaries_sf = contiguous_us_states,
-  output_filename = "~/The Lab Dropbox/Nick Silvis/Air Quality Project/Output/satellite_map_sf.png"
+  output_filename = "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification/Output/satellite_map_sf.png"
 )
