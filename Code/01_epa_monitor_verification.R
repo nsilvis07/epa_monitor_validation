@@ -16,7 +16,7 @@ pacman::p_load(
 )
 
 ###### Directories & Parameters ######
-main_dir   <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification"
+main_dir   <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification" # This should point to the data and output folder as opposed to where the code lives
 data_dir   <- file.path(main_dir, "Data")
 output_dir <- file.path(main_dir, "Output")
 years      <- 2017:2022
