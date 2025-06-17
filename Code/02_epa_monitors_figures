@@ -1,0 +1,235 @@
+##############################################################################
+# FILE NAME: 02_epa_monitors_figures
+# AUTHOR: Zoe Mitchell
+# PURPOSE: This script generates the figures for the EPA PM2.5 Monitors project
+# UPDATED: 06-16-2025
+##############################################################################
+
+
+###### Create Functions ######
+
+# ---- Density plot with legend ----
+plot_density <- function(df, fn) {
+  df <- mutate(df, Type=factor(method_type, levels=c("Original","Updated")))
+  p <- ggplot(df, aes(arithmetic_mean, fill=method_type, color=method_type)) +
+    geom_density(alpha=0.3, linewidth=0.8) +
+    scale_color_manual(values=c(Original=cbPalette[6],Updated=cbPalette[7])) +
+    scale_fill_manual(values=c(Original=cbPalette[6],Updated=cbPalette[7])) +
+    theme_classic(base_family="Times", base_size=25) +
+    theme(
+      legend.position   = "bottom",
+      legend.key.width  = unit(2,"cm"),
+      legend.key.height = unit(1,"cm"),
+      legend.text       = element_text(size=20)
+    ) +
+    labs(x="PM2.5 Concentration (Arithmetic Mean)", y="Density")
+  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+}
+
+# ---- Annual Averages & Differences Plot ----
+plot_annual_averages <- function(df, fn) {
+  # compute annual averages
+  avg <- df %>%
+    group_by(Year, method_type) %>%
+    summarize(Average_PM2.5 = mean(arithmetic_mean, na.rm = TRUE),
+              .groups = "drop")
+  
+  # determine y-axis upper limit (round up to next even)
+  y_max <- ceiling(max(avg$Average_PM2.5, na.rm = TRUE) / 2) * 2
+  
+  p <- ggplot(avg, aes(x = Year, y = Average_PM2.5, fill = method_type)) +
+    geom_col(position = "dodge") +
+    scale_fill_manual(values = c(Original = cbPalette[6], Updated = cbPalette[7])) +
+    scale_y_continuous(
+      breaks = seq(0, y_max, by = 2),
+      limits = c(0, y_max)
+    ) +
+    labs(x = "Year", y = "Average PM2.5 (µg/m³)") +
+    theme_classic(base_family = "Times", base_size = 25) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.y = element_line(color = "grey80", linewidth = 0.75, linetype = "dotted")
+    )
+  
+  ggsave(file.path(output_dir, fn), p, width = 15, height = 10, dpi = 300)
+}
+
+plot_annual_differences <- function(df, fn) {
+  # compute yearly updated–original differences
+  diff <- df %>%
+    group_by(Year) %>%
+    summarize(
+      Difference =
+        mean(arithmetic_mean[method_type == "Updated"], na.rm = TRUE) -
+        mean(arithmetic_mean[method_type == "Original"], na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # get limits for both positive and negative, rounded out to nearest multiple of 2
+  y_min <- floor(min(diff$Difference, na.rm = TRUE) / 2) * 2
+  y_max <- ceiling(max(diff$Difference, na.rm = TRUE) / 2) * 2
+  
+  p <- ggplot(diff, aes(x = Year, y = Difference)) +
+    geom_col(fill = cbPalette[6]) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = cbPalette[6]) +
+    scale_y_continuous(
+      breaks = seq(y_min, y_max, by = 0.5),
+      limits = c(y_min, y_max)
+    ) +
+    labs(x = "Year", y = "Updated – Original PM2.5 (µg/m³)") +
+    theme_classic(base_family = "Times", base_size = 25) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.y = element_line(color = "grey80", linewidth = 0.75, linetype = "dotted")
+    )
+  
+  ggsave(file.path(output_dir, fn), p, width = 15, height = 10, dpi = 300)
+}
+
+
+# ---- QQ plot ----
+plot_qq <- function(original_values, updated_values, fn) {
+  df <- tibble(
+    OriginalPct = ecdf(original_values)(original_values)*100,
+    UpdatedPct = ecdf(updated_values)(updated_values)*100
+  )
+  p <- ggplot(df, aes(OriginalPct, UpdatedPct)) +
+    geom_point(size=3, alpha=0.9, color="blue") +
+    geom_abline(slope=1, intercept=0, linetype="dashed") +
+    coord_equal(xlim=c(0,100), ylim=c(0,100)) +
+    labs(x="Original Monitor Percentile", y="Updated Monitor Percentile") +
+    theme_classic(base_family="Times", base_size=25)
+  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+}
+
+# ---- QQ plot (adapted for all data) ----
+plot_qq_alldata <- function(original_values_alldata, updated_values_alldata, fn) {
+  df <- tibble(
+    OriginalPct = ecdf(original_values_alldata)(original_values_alldata)*100,
+    UpdatedPct = ecdf(updated_values_alldata)(updated_values_alldata)*100
+  )
+  p <- ggplot(df, aes(OriginalPct, UpdatedPct)) +
+    geom_point(size=3, alpha=0.9, color="blue") +
+    geom_abline(slope=1, intercept=0, linetype="dashed") +
+    coord_equal(xlim=c(0,100), ylim=c(0,100)) +
+    labs(x="Original Data Percentile", y="Updated Data Percentile") +
+    theme_classic(base_family="Times", base_size=25)
+  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+}
+
+
+# ---- Scatter Plot with Line of Best Fit ----
+plot_scatter <- function(df, fn) {
+  p <- ggplot(df, aes(x=Satellite, y=Monitor_PM2.5, color=Source)) +
+    geom_point(alpha=0.6) +
+    geom_smooth(method="lm", se=FALSE,
+                aes(group=Source, color=Source)) +
+    geom_abline(slope=1, intercept=0, linetype="dashed",color="black") +
+    scale_color_manual(values=c(Original_monitor_data_impacted=cbPalette[6],Updated_monitor_data_impacted=cbPalette[7]),
+                       labels=c("Original Monitor","Updated Monitor")) +
+    labs(x="Satellite PM2.5 (µg/m³)", y="Monitor PM2.5 (µg/m³)") +
+    theme_classic(base_family="Times", base_size=25) +
+    theme(legend.position="none")
+  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+}
+
+# ---- Scatter Plot with Line of Best Fit (adapted for all data) ----
+plot_scatter_alldata <- function(df, fn) {
+  p <- ggplot(df, aes(x=Satellite, y=Monitor_PM2.5, color=Source)) +
+    geom_point(alpha=0.6) +
+    geom_smooth(method="lm", se=FALSE,
+                aes(group=Source, color=Source)) +
+    geom_abline(slope=1, intercept=0, linetype="dashed",color="black") +
+    scale_color_manual(values=c(monitor_data_original=cbPalette[6],monitor_data_updated=cbPalette[7]),
+                       labels=c("Original Data","Updated Data")) +
+    labs(x="Satellite PM2.5 (µg/m³)", y="Monitor PM2.5 (µg/m³)") +
+    theme_classic(base_family="Times", base_size=25) +
+    theme(legend.position="none")
+  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+}
+
+
+###### Call Functions ######
+
+# ---- Density Plots ----
+
+# Impacted data
+pct99_impacted <- quantile(monitor_data_impacted$arithmetic_mean, 0.99, na.rm=TRUE)
+impacted_99 <- filter(monitor_data_impacted, arithmetic_mean <= pct99_impacted)
+plot_density(impacted_99, "density_plot_99_impacted.png")
+
+# All data
+pct99_alldata <- quantile(monitor_data_combined$arithmetic_mean, 0.99, na.rm = TRUE)
+alldata_99 <- filter(monitor_data_combined, arithmetic_mean <= pct99_alldata)
+plot_density(alldata_99, "density_plot_99_alldata.png")
+  
+# ---- Annual Averages Bar Plot ----
+  
+  # Impacted data
+  plot_annual_averages(monitor_data_impacted, "bar_plot_impacted.png")
+
+  # All data
+  plot_annual_averages(monitor_data_combined, "bar_plot_alldata.png")
+  
+# ---- Annual Differences Bar Plot ----
+
+# Impacted data
+plot_annual_differences(monitor_data_impacted, "differences_bar_plot_impacted.png")
+
+# All data
+plot_annual_differences(monitor_data_combined, "differences_bar_plot_alldata.png")
+
+  
+# ---- QQ Plot ----
+
+# Impacted data
+original_values_impacted <- quantile(monitor_data_impacted$arithmetic_mean[monitor_data_impacted$method_type=="Original"], probs=seq(0,1,0.01), na.rm=TRUE)
+updated_values_impacted <- quantile(monitor_data_impacted$arithmetic_mean[monitor_data_impacted$method_type=="Updated"], probs=seq(0,1,0.01), na.rm=TRUE)
+plot_qq(original_values_impacted, updated_values_impacted, "qq_plot_impacted.png")
+
+# All data
+original_values_alldata <- quantile(monitor_data_combined$arithmetic_mean[monitor_data_combined$method_type == "Original"], probs = seq(0, 1, 0.01), na.rm = TRUE)
+updated_values_alldata <- quantile(monitor_data_combined$arithmetic_mean[monitor_data_combined$method_type == "Updated"], probs = seq(0, 1, 0.01), na.rm = TRUE)
+plot_qq_alldata(original_values_alldata, updated_values_alldata, "qq_plot_alldata.png")
+  
+# --- Scatter Plot ---
+
+# Impacted data
+plot_scatter(monitor_satellite_long_impacted,   "scatter_plot.png")
+                  c(cbPalette[6], cbPalette[7])
+
+# All data
+plot_scatter_alldata(monitor_satellite_long_alldata,   "scatter_plot_alldata.png")
+                                c(cbPalette[6], cbPalette[7])
+
+
+#  --- Bar chart to investigate share of erroneous monitors by year ---
+
+# Calculate share of unique site_id values with method_code 236 or 238 by year
+share_by_year <- monitor_data_original %>%
+  group_by(Year) %>%
+  summarize(
+    total_sites = n_distinct(site_id),
+    sites_236_238 = n_distinct(site_id[method_code %in% c(236, 238)]),
+    share_236_238 = sites_236_238 / total_sites
+  )
+
+# Plot the share by year
+share236or238_plot <- ggplot(share_by_year, aes(x = Year, y = share_236_238)) +
+  geom_col(fill = "#0072B2") +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  labs(
+    x = "Year",
+    y = "Share of Monitors (%)"
+  ) +
+  theme_classic(base_family = "Times", base_size = 25) # Match function figures
+
+# Save graph
+ggsave(
+  filename = file.path(output_dir, "share236or238_bar_plot.png"),
+  plot = share_plot,
+  width = 15,
+  height = 10,
+  dpi = 300
+)
+
