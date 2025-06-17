@@ -3,20 +3,20 @@
 # Date Created: 2025-06-10
 # Updated: 2025-06-10
 
-# Purpose: Compare old and new ground monitors with satellite PM2.5 estimates,
+# Purpose: Compare original and updated ground monitors with satellite PM2.5 estimates,
 # preserving exact plotting behavior from the original monolithic script.
 
 rm(list = ls())
 
-#### Libraries
+# Libraries
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
-  cowplot, grid, gtable, stargazer, smoothr
+  cowplot, grid, gtable, stargazer, smoothr, readr, janitor
 )
 
-#### Directories & Parameters
-main_dir   <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification"
+###### Directories & Parameters ######
+main_dir   <- "~/The Lab Dropbox/Nick Silvis/EPA PM2.5 Monitor Update Verification" # This should point to the data and output folder as opposed to where the code lives
 data_dir   <- file.path(main_dir, "Data")
 output_dir <- file.path(main_dir, "Output")
 years      <- 2017:2022
@@ -24,7 +24,7 @@ years      <- 2017:2022
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-#### File Paths
+# File Paths
 monitor_files <- paste0(data_dir, "/daily_88101_", years, ".csv")
 satellite_files <- setNames(
   file.path(data_dir,
@@ -32,44 +32,25 @@ satellite_files <- setNames(
   years
 )
 
-#### Helper: process & aggregate monitor data by station-year
-# Step 1: Process Monitor Data
-process_old_and_updated_monitor_data_restricted <- function(data, year) {
-  # Separate Old and New Monitors
-  old_monitor_data_restricted <- data[data$Method.Code %in% c(236, 238), ]
-  new_monitor_data_restricted <- data[data$Method.Code %in% c(736, 738), ]
+###### Defining Functions ######
+
+# Process Monitor Data
+process_original_and_updated_monitor_data_restricted <- function(data, year) {
+  # Separate Original and New Monitors
+  original_monitor_data_restricted <- data[data$Method.Code %in% c(236, 238), ]
+  updated_monitor_data_restricted <- data[data$Method.Code %in% c(736, 738), ]
   
   # Add Year and Type Columns
-  old_monitor_data_restricted$Year <- year
-  old_monitor_data_restricted$Type <- "Old"
+  original_monitor_data_restricted$Year <- year
+  original_monitor_data_restricted$Type <- "Original"
   
-  new_monitor_data_restricted$Year <- year
-  new_monitor_data_restricted$Type <- "New"
+  updated_monitor_data_restricted$Year <- year
+  updated_monitor_data_restricted$Type <- "New"
   
-  rbind(old_monitor_data_restricted, new_monitor_data_restricted)  # Combine Old and New
+  rbind(original_monitor_data_restricted, updated_monitor_data_restricted)  # Combine Original and New
 }
 
-#### Load & combine monitor data
-# Load Monitor Data for Each Year
-years <- 2017:2022
-
-file_paths <- paste0(data_dir, "/daily_88101_", years, ".csv")
-
-monitor_data_restricted <- do.call(rbind, lapply(seq_along(years), function(i) {
-  data <- read.csv(file_paths[i])
-  process_old_and_updated_monitor_data_restricted(data, years[i])
-}))
-
-# Add a 'Year' column
-monitor_data_restricted$Year <- as.numeric(substr(monitor_data_restricted$Date.Local, 1, 4))
-
-#### Trim percentiles
-pct95 <- quantile(monitor_data_restricted$Arithmetic.Mean, 0.95, na.rm=TRUE)
-pct99 <- quantile(monitor_data_restricted$Arithmetic.Mean, 0.99, na.rm=TRUE)
-monitor_95 <- filter(monitor_data_restricted, Arithmetic.Mean <= pct95)
-monitor_99 <- filter(monitor_data_restricted, Arithmetic.Mean <= pct99)
-
-#### Satellite data → Data frames list
+# Reads in Satellite Data
 sat_list <- lapply(satellite_files, function(f) {
   sat_obj <- get(load(f))
   df <- as.data.frame(sat_obj, xy=TRUE)
@@ -77,52 +58,13 @@ sat_list <- lapply(satellite_files, function(f) {
   df
 })
 
-#### Build overlayed_data_list
-overlayed_data_list <- list()
-for (yr in years) {
-  mon_sub <- filter(monitor_data_restricted, Year == yr)
-  
-  # Load satellite raster
-  sat_r <- raster(get(load(satellite_files[[as.character(yr)]])))
-  crs(sat_r) <- "+proj=longlat +datum=WGS84"
-  
-  # Split into Old/New and convert to Spatial points
-  old_pts <- filter(mon_sub, Type == "Old")
-  new_pts <- filter(mon_sub, Type == "New")
-  
-  coordinates(old_pts) <- ~ Longitude + Latitude
-  proj4string(old_pts) <- CRS("+proj=longlat +datum=WGS84")
-  coordinates(new_pts) <- ~ Longitude + Latitude
-  proj4string(new_pts) <- CRS("+proj=longlat +datum=WGS84")
-  
-  # Rasterize each
-  r_old <- rasterize(old_pts, sat_r, field = "Arithmetic.Mean",
-                     fun = mean, na.rm = TRUE)
-  r_new <- rasterize(new_pts, sat_r, field = "Arithmetic.Mean",
-                     fun = mean, na.rm = TRUE)
-  
-  # Stack and extract to dataframe
-  stk <- stack(r_old, r_new, sat_r)
-  names(stk) <- c("Old_monitor_data_restricted", "New_monitor_data_restricted", "Satellite")
-  
-  df <- as.data.frame(stk, xy = TRUE, na.rm = TRUE)
-  df$Year <- yr
-  overlayed_data_list[[as.character(yr)]] <- df
-}
-final_data <- bind_rows(overlayed_data_list)
-final_long <- pivot_longer(final_data,
-                           cols = c("Old_monitor_data_restricted", "New_monitor_data_restricted"),
-                           names_to = "Source", values_to = "Monitor_PM2.5")
-
-#### Plot Functions
-
-# Density with legend
+# Density plot with legend
 plot_density <- function(df, fn) {
-  df <- mutate(df, Type=factor(Type, levels=c("Old","New")))
-  p <- ggplot(df, aes(Arithmetic.Mean, fill=Type, color=Type)) +
+  df <- mutate(df, Type=factor(method_type, levels=c("Original","New")))
+  p <- ggplot(df, aes(arithmetic_mean, fill=method_type, color=method_type)) +
     geom_density(alpha=0.3, linewidth=0.8) +
-    scale_color_manual(values=c(Old=cbPalette[6],New=cbPalette[7])) +
-    scale_fill_manual(values=c(Old=cbPalette[6],New=cbPalette[7])) +
+    scale_color_manual(values=c(Original=cbPalette[6],New=cbPalette[7])) +
+    scale_fill_manual(values=c(Original=cbPalette[6],New=cbPalette[7])) +
     theme_classic(base_family="CMU Serif", base_size=25) +
     theme(
       legend.position   = "bottom",
@@ -134,88 +76,219 @@ plot_density <- function(df, fn) {
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
 
-# Annual averages & differences
+# Annual Averages & Differences Plot
 plot_annual_averages <- function(df, fn) {
-  avg <- df %>% group_by(Year, Type) %>%
-    summarize(Average_PM2.5=mean(Arithmetic.Mean, na.rm=TRUE), .groups="drop")
-  p <- ggplot(avg, aes(x=Year, y=Average_PM2.5, fill=Type)) +
-    geom_col(position="dodge") +
-    scale_fill_manual(values=c(Old=cbPalette[6],New=cbPalette[7])) +
-    labs(x="Year", y="Average PM2.5 (µg/m³)") +
-    theme_classic(base_family="CMU Serif", base_size=25) +
-    theme(legend.position="none",
-          panel.grid.major.y=element_line(color="grey80",linewidth=0.75,linetype="dotted"))
-  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
-}
-plot_annual_differences <- function(df, fn) {
-  diff <- df %>% group_by(Year) %>%
-    summarize(Difference=
-                mean(Arithmetic.Mean[Type=="New"], na.rm=TRUE)-
-                mean(Arithmetic.Mean[Type=="Old"], na.rm=TRUE), .groups="drop")
-  p <- ggplot(diff, aes(x=Year, y=Difference)) +
-    geom_col(fill=cbPalette[6]) +
-    geom_hline(yintercept=0, linetype="dashed",color=cbPalette[6]) +
-    labs(x="Year", y="New – Old PM2.5 (µg/m³)") +
-    theme_classic(base_family="CMU Serif", base_size=25) +
-    theme(legend.position="none",
-          panel.grid.major.y=element_line(color="grey80",linewidth=0.75,linetype="dotted"))
-  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+  # compute annual averages
+  avg <- df %>%
+    group_by(Year, method_type) %>%
+    summarize(Average_PM2.5 = mean(arithmetic_mean, na.rm = TRUE),
+              .groups = "drop")
+  
+  # determine y-axis upper limit (round up to next even)
+  y_max <- ceiling(max(avg$Average_PM2.5, na.rm = TRUE) / 2) * 2
+  
+  p <- ggplot(avg, aes(x = Year, y = Average_PM2.5, fill = method_type)) +
+    geom_col(position = "dodge") +
+    scale_fill_manual(values = c(Original = cbPalette[6], New = cbPalette[7])) +
+    scale_y_continuous(
+      breaks = seq(0, y_max, by = 2),
+      limits = c(0, y_max)
+    ) +
+    labs(x = "Year", y = "Average PM2.5 (µg/m³)") +
+    theme_classic(base_family = "CMU Serif", base_size = 25) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.y = element_line(color = "grey80", linewidth = 0.75, linetype = "dotted")
+    )
+  
+  ggsave(file.path(output_dir, fn), p, width = 15, height = 10, dpi = 300)
 }
 
-# QQ plot in percentile space
-tplot_qq <- function(old_q, new_q, fn) {
+plot_annual_differences <- function(df, fn) {
+  # compute yearly updated–original differences
+  diff <- df %>%
+    group_by(Year) %>%
+    summarize(
+      Difference =
+        mean(arithmetic_mean[method_type == "New"], na.rm = TRUE) -
+        mean(arithmetic_mean[method_type == "Original"], na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # get limits for both positive and negative, rounded out to nearest multiple of 2
+  y_min <- floor(min(diff$Difference, na.rm = TRUE) / 2) * 2
+  y_max <- ceiling(max(diff$Difference, na.rm = TRUE) / 2) * 2
+  
+  p <- ggplot(diff, aes(x = Year, y = Difference)) +
+    geom_col(fill = cbPalette[6]) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = cbPalette[6]) +
+    scale_y_continuous(
+      breaks = seq(y_min, y_max, by = 2),
+      limits = c(y_min, y_max)
+    ) +
+    labs(x = "Year", y = "New – Original PM2.5 (µg/m³)") +
+    theme_classic(base_family = "CMU Serif", base_size = 25) +
+    theme(
+      legend.position = "none",
+      panel.grid.major.y = element_line(color = "grey80", linewidth = 0.75, linetype = "dotted")
+    )
+  
+  ggsave(file.path(output_dir, fn), p, width = 15, height = 10, dpi = 300)
+}
+
+
+# QQ plot
+plot_qq <- function(original_values, updated_values, fn) {
   df <- tibble(
-    OldPct = ecdf(old_q)(old_q)*100,
-    NewPct = ecdf(new_q)(new_q)*100
+    OriginalPct = ecdf(original_values)(original_values)*100,
+    NewPct = ecdf(updated_values)(updated_values)*100
   )
-  p <- ggplot(df, aes(OldPct, NewPct)) +
+  p <- ggplot(df, aes(OriginalPct, NewPct)) +
     geom_point(size=3, alpha=0.9, color="blue") +
     geom_abline(slope=1, intercept=0, linetype="dashed") +
     coord_equal(xlim=c(0,100), ylim=c(0,100)) +
-    labs(x="Old Monitor Percentile", y="New Monitor Percentile") +
+    labs(x="Original Monitor Percentile", y="New Monitor Percentile") +
     theme_classic(base_family="CMU Serif", base_size=25)
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
 
-# Scatter + per-source regression
-tplot_scatter <- function(df, fn) {
+# Scatter Plot with Line of Best Fit
+plot_scatter <- function(df, fn) {
   p <- ggplot(df, aes(x=Satellite, y=Monitor_PM2.5, color=Source)) +
     geom_point(alpha=0.6) +
     geom_smooth(method="lm", se=FALSE,
                 aes(group=Source, color=Source)) +
     geom_abline(slope=1, intercept=0, linetype="dashed",color="black") +
-    scale_color_manual(values=c(Old_monitor_data_restricted=cbPalette[6],New_monitor_data_restricted=cbPalette[7]),
-                       labels=c("Old Monitor","New Monitor")) +
+    scale_color_manual(values=c(Original_monitor_data_restricted=cbPalette[6],New_monitor_data_restricted=cbPalette[7]),
+                       labels=c("Original Monitor","New Monitor")) +
     labs(x="Satellite PM2.5 (µg/m³)", y="Monitor PM2.5 (µg/m³)") +
     theme_classic(base_family="CMU Serif", base_size=25) +
     theme(legend.position="none")
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
 
-#### Execute Plots
+###### Load & combine monitor data ######
+# Read & bind all years (2017–2023)
+years      <- 2017:2023
+file_paths <- paste0(data_dir, "/daily_88101_", years, ".csv")
+
+monitor_all <- bind_rows(lapply(file_paths, read_csv, show_col_types = FALSE))
+
+# Clean up column names 
+monitor_all <- monitor_all %>%
+  clean_names()
+
+# Build a site-level ID 
+monitor_all <- monitor_all %>%
+  mutate(
+    state_code  = as.integer(state_code),
+    county_code = as.integer(county_code),
+    site_num    = as.integer(site_num),
+    site_id     = sprintf("%02d%03d%04d", state_code, county_code, site_num)
+  )
+
+# Filter to just the T640/T640X FEM codes & flag original vs updated
+original_codes <- c(236, 238)
+updated_codes <- c(736, 738)
+
+updated_monitors <- monitor_all %>%
+  filter(method_code %in% c(original_codes, updated_codes)) %>%
+  mutate(method_type = if_else(method_code %in% original_codes, "Original", "New"))
+
+# Identify only the “updated” sites (ever had both original & updated) 
+updated_site_ids <- updated_monitors %>%
+  group_by(site_id) %>%
+  filter(any(method_type == "Original") & any(method_type == "New")) %>%
+  distinct(site_id) %>%
+  pull()
+
+monitor_data_restricted <- updated_monitors %>%
+  filter(site_id %in% updated_site_ids)
+
+# Check counts
+total_sites   <- n_distinct(updated_monitors$site_id)
+updated_sites <- length(updated_site_ids)
+dropped_sites <- total_sites - updated_sites
+
+cat(
+  "Sites in 4-code subset:   ", total_sites,   "\n",
+  "Sites w/ both Original & New: ", updated_sites, "\n",
+  "Sites dropped by filter: ", dropped_sites, "\n",
+  "Rows in updated dataset: ", nrow(monitor_data_restricted), "\n",
+  "Rows in original dataset: ", nrow(updated_monitors), "\n"
+)
+
+# Add a 'Year' column
+monitor_data_restricted$Year <- as.numeric(substr(monitor_data_restricted$date_local, 1, 4))
+
+overlayed_satellite_monitor_data_list <- list()
+for (yr in 2017:2022) {
+  mon_sub <- filter(monitor_data_restricted, Year == yr)
+  
+  sat_r <- raster(get(load(satellite_files[[as.character(yr)]])))
+  crs(sat_r) <- "+proj=longlat +datum=WGS84"
+  
+  original_pts <- filter(mon_sub, method_type == "Original")
+  updated_pts <- filter(mon_sub, method_type == "New")
+  
+  coordinates(original_pts) <- ~ longitude + latitude
+  proj4string(original_pts) <- CRS("+proj=longlat +datum=WGS84")
+  coordinates(updated_pts) <- ~ longitude + latitude
+  proj4string(updated_pts) <- CRS("+proj=longlat +datum=WGS84")
+  
+  # Rasterize each
+  r_original <- rasterize(original_pts, sat_r, field = "arithmetic_mean",
+                     fun = mean, na.rm = TRUE)
+  r_updated <- rasterize(updated_pts, sat_r, field = "arithmetic_mean",
+                     fun = mean, na.rm = TRUE)
+  
+  # Stack and extract to dataframe
+  stk <- stack(r_original, r_updated, sat_r)
+  names(stk) <- c("Original_monitor_data_restricted", "New_monitor_data_restricted", "Satellite")
+  
+  df <- as.data.frame(stk, xy = TRUE, na.rm = TRUE)
+  df$Year <- yr
+  overlayed_satellite_monitor_data_list[[as.character(yr)]] <- df
+}
+monitor_satellite_data <- bind_rows(overlayed_satellite_monitor_data_list)
+monitor_satellite_long <- pivot_longer(monitor_satellite_data,
+                           cols = c("Original_monitor_data_restricted", "New_monitor_data_restricted"),
+                           names_to = "Source", values_to = "Monitor_PM2.5")
+
+
+###### Manipulate Data ######
+
+# Trim percentiles
+pct95 <- quantile(monitor_data_restricted$arithmetic_mean, 0.95, na.rm=TRUE)
+pct99 <- quantile(monitor_data_restricted$arithmetic_mean, 0.99, na.rm=TRUE)
+monitor_95 <- filter(monitor_data_restricted, arithmetic_mean <= pct95)
+monitor_99 <- filter(monitor_data_restricted, arithmetic_mean <= pct99)
+
+###### Plots and Table Generation ######
+
 plot_density(monitor_99,    "density_plot_99.png")
 plot_density(monitor_95,    "density_plot_95.png")
 plot_annual_averages(monitor_data_restricted, "bar_plot.png")
 plot_annual_differences(monitor_data_restricted, "differences_bar_plot.png")
-old_q <- quantile(monitor_data_restricted$Arithmetic.Mean[monitor_data_restricted$Type=="Old"], probs=seq(0,1,0.01), na.rm=TRUE)
-new_q <- quantile(monitor_data_restricted$Arithmetic.Mean[monitor_data_restricted$Type=="New"], probs=seq(0,1,0.01), na.rm=TRUE)
-tplot_qq(old_q, new_q,      "qq_plot.png")
-tplot_scatter(final_long,   "scatter_plot.png")
+original_values <- quantile(monitor_data_restricted$arithmetic_mean[monitor_data_restricted$method_type=="Original"], probs=seq(0,1,0.01), na.rm=TRUE)
+updated_values <- quantile(monitor_data_restricted$arithmetic_mean[monitor_data_restricted$method_type=="New"], probs=seq(0,1,0.01), na.rm=TRUE)
+plot_qq(original_values, updated_values,      "qq_plot.png")
+plot_scatter(monitor_satellite_long,   "scatter_plot.png")
                   c(cbPalette[6], cbPalette[7])
   
-  # ---- Regression Analysis & Table via Stargazer ----
+# Regression and Table
   # Fit linear models by Source
-  old_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "Old_monitor_data_restricted"))
-  new_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(final_long, Source == "New_monitor_data_restricted"))
+  original_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(monitor_satellite_long, Source == "Original_monitor_data_restricted"))
+  updated_model <- lm(Monitor_PM2.5 ~ Satellite, data = filter(monitor_satellite_long, Source == "New_monitor_data_restricted"))
   
   # Output regression table in LaTeX
   stargazer(
-    old_model, new_model,
+    original_model, updated_model,
     type = "latex",
-    title = "Regression Results for Old and New Monitors",
+    title = "Regression Results for Original and New Monitors",
     label = "tab:regression",
     dep.var.labels = c("Monitor PM2.5"),
-    column.labels = c("Old Monitors", "New Monitors"),
+    column.labels = c("Original Monitors", "New Monitors"),
     covariate.labels = c("Satellite PM2.5", "Intercept"),
     omit.stat = c("f", "ser"),
     notes = "$^{*}p<0.1; ^{**}p<0.05; ^{***}p<0.01$",
@@ -230,47 +303,3 @@ tplot_scatter(final_long,   "scatter_plot.png")
   
   
   
-# Filters to only monitors that were updated
-
-# Read in the full monitor data
-  years <- 2017:2022
-  file_paths <- paste0(data_dir, "/daily_88101_", years, ".csv")
-  
-  monitor_data_full <- do.call(rbind, lapply(seq_along(years), function(i) {
-    df <- read.csv(file_paths[i])
-    df$Year <- years[i]
-    df
-  }))
-  
-  #### compute monitors per site
-  count_site_rows <- function(df) {
-    df %>%
-      mutate(
-        SiteID = sprintf("%02d%03d%04d",
-                         State.Code, County.Code, Site.Num)
-      ) %>%
-      group_by(SiteID) %>%
-      tally(name = "rows") %>%
-      ungroup()
-  }
-  
-  full_counts     <- count_site_rows(monitor_data_full)      %>% rename(full_rows = rows)
-  restricted_counts <- count_site_rows(monitor_data_restricted) %>% rename(restricted_rows = rows)
-  
-  #### 4. Join and compare ####
-  comparison <- full_counts %>%
-    full_join(restricted_counts, by = "SiteID") %>%
-    replace_na(list(full_rows = 0, restricted_rows = 0)) %>%
-    mutate(
-      dropped_rows = full_rows - restricted_rows,
-      kept_pct    = restricted_rows / full_rows * 100
-    )
-  
-  # Summary:
-  total_full     <- sum(full_counts$full_rows)
-  total_restrict <- sum(restricted_counts$restricted_rows)
-  total_dropped  <- total_full - total_restrict
-  
-  cat("Total rows in full data:            ", total_full,     "\n")
-  cat("Total rows in restricted data:      ", total_restrict, "\n")
-  cat("Total rows dropped by restriction:  ", total_dropped,  "\n")
