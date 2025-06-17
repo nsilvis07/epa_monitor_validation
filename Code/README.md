@@ -9,13 +9,11 @@ Between 2017 and 2023, a sizable fraction (up to 30%) of the EPA's roughly 1,000
 
 # File and Directory Structure
 
-**GitHub**
-* Code
-* README
 
-**DropBox**
-* Data  
-* Output
+
+* *GitHub*: Code and README
+* *DropBox* : Data and Output
+
 
 
 # Data Sources
