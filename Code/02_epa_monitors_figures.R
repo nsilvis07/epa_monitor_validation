@@ -228,9 +228,10 @@ share236or238_plot <- ggplot(share_by_year, aes(x = Year, y = share_236_238)) +
 # Save graph
 ggsave(
   filename = file.path(output_dir, "share236or238_bar_plot.png"),
-  plot = share_plot,
+  plot = share236or238_plot,
   width = 15,
   height = 10,
   dpi = 300
 )
+
 
