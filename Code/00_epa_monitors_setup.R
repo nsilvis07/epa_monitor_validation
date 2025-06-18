@@ -5,6 +5,10 @@
 ##############################################################################
 
 
+#### Clear environment
+
+rm(list = ls())
+
 #### Install neccessary packages
 
 if (!require("pacman")) install.packages("pacman")
