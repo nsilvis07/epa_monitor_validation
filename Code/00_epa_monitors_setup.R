@@ -1,7 +1,7 @@
 ##############################################################################
 # FILE NAME: 00_epa_monitors_setup AUTHOR: Zoe Mitchell PURPOSE: This script
 # sets the working directories, color palettes etc. neccessary to run scripts 01
-# - ~ UPDATED: 06-16-2025
+# - ~ UPDATED: 06-18-2025
 ##############################################################################
 
 
@@ -10,7 +10,7 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
-  cowplot, grid, gtable, stargazer, smoothr, janitor
+  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units
 )
 
 #### Set working directories
