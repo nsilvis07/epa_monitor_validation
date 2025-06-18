@@ -18,14 +18,12 @@
   stargazer(
     original_model_impacted, updated_model_impacted,
     type = "latex",
-    title = "Regression Results for Original vs. Updated Data: Impacted Monitors Only",
+    title = "Regression Results for Original and Updated Data: Impacted Monitors Only",
     label = "tab:regression",
     dep.var.labels = c("Monitor PM2.5"),
     column.labels = c("Original Data", "Updated Data"),
     covariate.labels = c("Satellite PM2.5", "Intercept"),
     omit.stat = c("f", "ser"),
-    notes = "$^{*}p<0.1; ^{**}p<0.05; ^{***}p<0.01$",
-    notes.align = "l",
     out = file.path(output_dir, "regression_results_table_impacted.tex")
   )
   cat("LaTeX regression table saved to", file.path(output_dir, "regression_results_table_impacted.tex"), "
@@ -41,14 +39,12 @@
   stargazer(
     original_model_alldata, updated_model_alldata,
     type = "latex",
-    title = "Regression Results for Original vs. Updated Data",
+    title = "Regression Results for Original and Updated Data",
     label = "tab:regression",
     dep.var.labels = c("Monitor PM2.5"),
     column.labels = c("Original Data", "Updated Data"),
     covariate.labels = c("Satellite PM2.5", "Intercept"),
     omit.stat = c("f", "ser"),
-    notes = "$^{*}p<0.1; ^{**}p<0.05; ^{***}p<0.01$",
-    notes.align = "l",
     out = file.path(output_dir, "regression_results_table_alldata.tex")
   )
   cat("LaTeX regression table saved to", file.path(output_dir, "regression_results_table_alldata.tex"), "
