@@ -14,7 +14,7 @@ rm(list = ls())
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
-  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units
+  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales
 )
 
 #### Set working directories
