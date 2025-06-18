@@ -1,7 +1,7 @@
 ##############################################################################
-# FILE NAME: 02_epa_monitors_figures
-# AUTHOR: Zoe Mitchell
-# PURPOSE: This script generates the figures for the EPA PM2.5 Monitors project
+# FILE NAME: 02_epa_monitors_figures 
+# AUTHOR: Zoe Mitchell 
+# PURPOSE: This script generates the figures for the EPA PM2.5 Monitors project 
 # UPDATED: 06-16-2025
 ##############################################################################
 
@@ -65,7 +65,8 @@ plot_annual_differences <- function(df, fn) {
       .groups = "drop"
     )
   
-  # get limits for both positive and negative, rounded out to nearest multiple of 2
+  # get limits for both positive and negative, rounded out to nearest multiple
+  # of 2
   y_min <- floor(min(diff$Difference, na.rm = TRUE) / 2) * 2
   y_max <- ceiling(max(diff$Difference, na.rm = TRUE) / 2) * 2
   

@@ -1,40 +1,42 @@
 ##############################################################################
 # FILE NAME: 01_epa_monitors_clean 
-#AUTHOR: Zoe Mitchell 
-#PURPOSE: This script loads and cleans the EPA PM2.5 monitors data, defines
-# separate data frames for specific analysis purposes (e.g., impacted monitors
-# only, and overlays these data frames with satellite data.
+# AUTHOR: Zoe Mitchell 
+# PURPOSE: This script loads and cleans the EPA PM2.5 monitors data, defines
+#separate data frames for specific analysis purposes (e.g., impacted monitors
+# only, and overlays these data frames with satellite data. 
 # UPDATED: 06-16-2025
-##############################################################################
+# #############################################################################
 
 
 ###### Load, Combine and Classify Monitor Data ###### 
 
-# ---- Generate monitor_all data frame by loading and combining ALL (for all years
-# and method codes) PM2.5 monitor data ----
+# ---- Generate monitor_all data frame by loading and combining ALL (for all
+# years and method codes) PM2.5 monitor data ----
 monitor_all <- bind_rows(lapply(monitor_files, read_csv, show_col_types = FALSE)) %>%
   clean_names() %>% # clean up column names
   filter(arithmetic_mean > 0) %>% # drop negative PM2.5 values
   mutate(
     Year = as.numeric(substr(date_local, 1, 4)), # extract year from date_local
-    # build a site-level ID by concatenating the state ID, county ID, and site number
+    # build a site-level ID by concatenating the state ID, county ID, and site
+    # number
     state_code  = as.integer(state_code),
     county_code = as.integer(county_code),
     site_num    = as.integer(site_num),
     site_id     = sprintf("%02d%03d%04d", state_code, county_code, site_num)
   )
 
-# ---- Generate monitor_data_impacted data frame, which includes both original and
-# updated readings for the miscalibrated monitors ----
+# ---- Generate monitor_data_impacted data frame, which includes both original
+# and updated readings for the miscalibrated monitors ----
 
 impacted_monitors <- monitor_all %>%
   # Filter to monitors that were impacted by miscalibration
   filter(method_code %in% c(original_codes, updated_codes)) %>% 
-  # Within the full data for impacted monitors, distinguish between
-  # original (incorrect: 236/238) and updated (correct: 736/738) readings
+  # Within the full data for impacted monitors, distinguish between original
+  # (incorrect: 236/238) and updated (correct: 736/738) readings
   mutate(method_type = if_else(method_code %in% original_codes, "Original", "Updated"))
 
-# Identify only the impacted sites (method_type = 236/238 --> method_type = 736/738) 
+# Identify only the impacted sites (method_type = 236/238 --> method_type =
+# 736/738) 
 impacted_site_ids <- impacted_monitors %>%
   group_by(site_id) %>%
   filter(any(method_type == "Original") & any(method_type == "Updated")) %>%
@@ -70,8 +72,8 @@ cat(
   monitor_data_updated <- monitor_all %>%
     filter(!method_code %in% original_codes)
   
-  # Add a column (data_type) to each data frame that indicates whether the 
-  # data is original or updated
+  # Add a column (data_type) to each data frame that indicates whether the data
+  # is original or updated
   monitor_data_original <- monitor_data_original %>%
     mutate(method_type = "Original")
   

@@ -1,8 +1,8 @@
 ##############################################################################
-# FILE NAME: 03_epa_monitors_regressions
-# AUTHOR: Zoe Mitchell
+# FILE NAME: 03_epa_monitors_regressions 
+# AUTHOR: Zoe Mitchell 
 # PURPOSE: This script runs regressions and creates regression tables for the
-# EPA PM2.5 Monitors project
+# EPA PM2.5 Monitors project 
 # UPDATED: 06-16-2025
 ##############################################################################
 
