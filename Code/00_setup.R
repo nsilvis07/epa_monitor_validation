@@ -1,14 +1,97 @@
 ##############################################################################
-# FILE NAME: 02_epa_monitors_figures 
+# FILE NAME: 00_setup 
 # AUTHOR: Zoe Mitchell 
-# PURPOSE: This script generates the figures for the EPA PM2.5 Monitors project 
-# UPDATED: 06-16-2025
+# PURPOSE: This script sets the working directories, sets the functions, etc.
+# neccessary to run scripts 01 - 03
+# UPDATED: 06-18-2025
 ##############################################################################
 
 
-###### Create Functions ######
+#### Clear environment
 
-# ---- Density plot with legend ----
+rm(list = ls())
+
+#### Install neccessary packages
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
+  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales
+)
+
+#### Set working directories
+
+main_dir   <- "~/The Lab Dropbox/Zoe Mitchell/EPA PM2.5 Monitor Update Verification"
+data_dir   <- file.path(main_dir, "Data")
+output_dir <- file.path(main_dir, "Output")
+
+#### Set parameters
+
+years_monitors <- 2017:2023
+years_satellite <- 2017:2022
+
+original_codes <- c(236, 238) 
+updated_codes <- c(736, 738) 
+
+#### Set file paths
+
+monitor_files <- paste0(data_dir, "/daily_88101_", years_monitors, ".csv")
+satellite_files <- setNames(
+  file.path(data_dir,
+            paste0("V5GL04.HybridPM25.NorthAmerica.", years_satellite, "01-", years_satellite, "12.rda")),
+  years_satellite
+)
+
+#### Set color palettes
+
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+source_colors <- c(
+  "Original_monitor_data_impacted" = cbPalette[6],
+  "New_monitor_data_impacted" = cbPalette[7],
+  "monitor_data_original" = cbPalette[6],
+  "monitor_data_updated" = cbPalette[7]
+)
+
+
+#### Build Functions
+
+#---- Overlay ground-level data with satellite data (impacted and all data) ----
+
+overlay_monitor_satellite <- function(monitor_data, satellite_files, years, original_label = "Original", updated_label = "Updated", out_names = c("monitor_data_original", "monitor_data_updated", "Satellite")) {
+  result_list <- list()
+  for (yr in years_satellite) {
+    mon_sub <- filter(monitor_data, Year == yr)
+    sat_r <- raster(get(load(satellite_files[[as.character(yr)]])))
+    crs(sat_r) <- "+proj=longlat +datum=WGS84"
+    
+    original_pts <- filter(mon_sub, method_type == original_label)
+    updated_pts  <- filter(mon_sub, method_type == updated_label)
+    
+    coordinates(original_pts) <- ~ longitude + latitude
+    proj4string(original_pts) <- CRS("+proj=longlat +datum=WGS84")
+    coordinates(updated_pts) <- ~ longitude + latitude
+    proj4string(updated_pts) <- CRS("+proj=longlat +datum=WGS84")
+    
+    # Rasterize each
+    r_original <- rasterize(original_pts, sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
+    r_updated  <- rasterize(updated_pts, sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
+    
+    # Stack and extract to dataframe
+    stk <- stack(r_original, r_updated, sat_r)
+    names(stk) <- out_names
+    
+    df <- as.data.frame(stk, xy = TRUE, na.rm = TRUE)
+    df$Year <- yr
+    result_list[[as.character(yr)]] <- df
+  }
+  bind_rows(result_list)
+}
+
+
+
+# ---- Density plot with legend (impacted and all data) ----
 plot_density <- function(df, fn) {
   df <- mutate(df, Type=factor(method_type, levels=c("Original","Updated")))
   p <- ggplot(df, aes(arithmetic_mean, fill=method_type, color=method_type)) +
@@ -26,7 +109,7 @@ plot_density <- function(df, fn) {
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
 
-# ---- Annual Averages & Differences Plot ----
+# ---- Annual averages & differences plot (impacted and all data) ----
 plot_annual_averages <- function(df, fn) {
   # compute annual averages
   avg <- df %>%
@@ -88,7 +171,7 @@ plot_annual_differences <- function(df, fn) {
 }
 
 
-# ---- QQ plot ----
+# ---- QQ plot (impacted data only) ----
 plot_qq <- function(original_values, updated_values, fn) {
   df <- tibble(
     OriginalPct = ecdf(original_values)(original_values)*100,
@@ -103,7 +186,7 @@ plot_qq <- function(original_values, updated_values, fn) {
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
 
-# ---- QQ plot (adapted for all data) ----
+# ---- QQ plot (all data only) ----
 plot_qq_alldata <- function(original_values_alldata, updated_values_alldata, fn) {
   df <- tibble(
     OriginalPct = ecdf(original_values_alldata)(original_values_alldata)*100,
@@ -119,7 +202,7 @@ plot_qq_alldata <- function(original_values_alldata, updated_values_alldata, fn)
 }
 
 
-# ---- Scatter Plot with Line of Best Fit ----
+# ---- Scatter plot with line of best fit ----
 plot_scatter <- function(df, fn) {
   p <- ggplot(df, aes(x=Satellite, y=Monitor_PM2.5, color=Source)) +
     geom_point(alpha=0.6) +
@@ -148,90 +231,3 @@ plot_scatter_alldata <- function(df, fn) {
     theme(legend.position="none")
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
-
-
-###### Call Functions ######
-
-# ---- Density Plots ----
-
-# Impacted data
-pct99_impacted <- quantile(monitor_data_impacted$arithmetic_mean, 0.99, na.rm=TRUE)
-impacted_99 <- filter(monitor_data_impacted, arithmetic_mean <= pct99_impacted)
-plot_density(impacted_99, "density_plot_99_impacted.png")
-
-# All data
-pct99_alldata <- quantile(monitor_data_combined$arithmetic_mean, 0.99, na.rm = TRUE)
-alldata_99 <- filter(monitor_data_combined, arithmetic_mean <= pct99_alldata)
-plot_density(alldata_99, "density_plot_99_alldata.png")
-  
-# ---- Annual Averages Bar Plot ----
-  
-  # Impacted data
-  plot_annual_averages(monitor_data_impacted, "bar_plot_impacted.png")
-
-  # All data
-  plot_annual_averages(monitor_data_combined, "bar_plot_alldata.png")
-  
-# ---- Annual Differences Bar Plot ----
-
-# Impacted data
-plot_annual_differences(monitor_data_impacted, "differences_bar_plot_impacted.png")
-
-# All data
-plot_annual_differences(monitor_data_combined, "differences_bar_plot_alldata.png")
-
-  
-# ---- QQ Plot ----
-
-# Impacted data
-original_values_impacted <- quantile(monitor_data_impacted$arithmetic_mean[monitor_data_impacted$method_type=="Original"], probs=seq(0,1,0.01), na.rm=TRUE)
-updated_values_impacted <- quantile(monitor_data_impacted$arithmetic_mean[monitor_data_impacted$method_type=="Updated"], probs=seq(0,1,0.01), na.rm=TRUE)
-plot_qq(original_values_impacted, updated_values_impacted, "qq_plot_impacted.png")
-
-# All data
-original_values_alldata <- quantile(monitor_data_combined$arithmetic_mean[monitor_data_combined$method_type == "Original"], probs = seq(0, 1, 0.01), na.rm = TRUE)
-updated_values_alldata <- quantile(monitor_data_combined$arithmetic_mean[monitor_data_combined$method_type == "Updated"], probs = seq(0, 1, 0.01), na.rm = TRUE)
-plot_qq_alldata(original_values_alldata, updated_values_alldata, "qq_plot_alldata.png")
-  
-# --- Scatter Plot ---
-
-# Impacted data
-plot_scatter(monitor_satellite_long_impacted,   "scatter_plot.png")
-                  c(cbPalette[6], cbPalette[7])
-
-# All data
-plot_scatter_alldata(monitor_satellite_long_alldata,   "scatter_plot_alldata.png")
-                                c(cbPalette[6], cbPalette[7])
-
-
-#  --- Bar chart to investigate share of erroneous monitors by year ---
-
-# Calculate share of unique site_id values with method_code 236 or 238 by year
-share_by_year <- monitor_data_original %>%
-  group_by(Year) %>%
-  summarize(
-    total_sites = n_distinct(site_id),
-    sites_236_238 = n_distinct(site_id[method_code %in% c(236, 238)]),
-    share_236_238 = sites_236_238 / total_sites
-  )
-
-# Plot the share by year
-share236or238_plot <- ggplot(share_by_year, aes(x = Year, y = share_236_238)) +
-  geom_col(fill = "#0072B2") +
-  scale_y_continuous(labels = percent_format(accuracy = 1)) +
-  labs(
-    x = "Year",
-    y = "Share of Monitors (%)"
-  ) +
-  theme_classic(base_family = "Times", base_size = 25) # Match function figures
-
-# Save graph
-ggsave(
-  filename = file.path(output_dir, "share236or238_bar_plot.png"),
-  plot = share236or238_plot,
-  width = 15,
-  height = 10,
-  dpi = 300
-)
-
-
