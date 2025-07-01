@@ -21,8 +21,8 @@ The code in this replication package constrcts the analysis file from two main d
 
 ### Statement about Rights
 
-- [ **X** ] I certify that the author(s) of the manuscript have legitimate access to and permission to use the data used in this manuscript. 
-- [ **X** ] I certify that the author(s) of the manuscript have documented permission to redistribute/publish the data contained within this replication package. Appropriate permission are documented in the [LICENSE.txt](LICENSE.txt) file.
+- [x] I certify that the author(s) of the manuscript have legitimate access to and permission to use the data used in this manuscript. 
+- [x] I certify that the author(s) of the manuscript have documented permission to redistribute/publish the data contained within this replication package. Appropriate permission are documented in the [LICENSE.txt](LICENSE.txt) file.
 
 
 ### License for Data
@@ -31,7 +31,7 @@ The SatPM2.5 data V6.GL.02.04 is licensed under a [Creative Commons/CC BY 4.0 li
 
 ### Summary of Availability
 
-- [**X** ] All data **are** publicly available.
+- [x] All data **are** publicly available.
 - [ ] Some data **cannot be made** publicly available.
 - [ ] **No data can be made** publicly available.
 
@@ -83,7 +83,7 @@ The data processing for this replication package is not computationally intensiv
 
 ### Software Requirements
 
-- [ **X** ] The replication package contains one or more programs to install all dependencies and set up the necessary directory structure. [HIGHLY RECOMMENDED]
+- [x] The replication package contains one or more programs to install all dependencies and set up the necessary directory structure. [HIGHLY RECOMMENDED]
 
 - R (version 4.5.0, 2025-04-11)  
   - `pacman` (0.5.1)  
@@ -109,7 +109,7 @@ All required packages are installed by running 00_setup.R.
 ### Controlled Randomness
 
 - [ ] Random seed is set at line _____ of program ______
-- [ **X** ] No Pseudo random generator is used in the analysis described here.
+- [x] No Pseudo random generator is used in the analysis described here.
 
 ### Memory, Runtime, Storage Requirements
 
@@ -117,7 +117,7 @@ All required packages are installed by running 00_setup.R.
 
 Approximate time needed to reproduce the analyses on a standard (2025) desktop machine:
 
-- [ **X** ] <10 minutes
+- [x] <10 minutes
 - [ ] 10-60 minutes
 - [ ] 1-2 hours
 - [ ] 2-8 hours
@@ -131,7 +131,7 @@ Approximate storage space needed:
 - [] < 25 MBytes
 - [ ] 25 MB - 250 MB
 - [ ] 250 MB - 2 GB
-- [ **X** ] 2 GB - 25 GB
+- [x] 2 GB - 25 GB
 - [ ] 25 GB - 250 GB
 - [ ] > 250 GB
 
