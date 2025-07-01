@@ -32,7 +32,7 @@ plot_qq(original_values_impacted, updated_values_impacted, "qq_plot_impacted.png
  
 # --- Scatter Plot ---
 
-plot_scatter(monitor_satellite_long_impacted,   "scatter_plot.png")
+plot_scatter(monitor_satellite_long_impacted,   "scatter_plot_impacted.png")
                   c(cbPalette[6], cbPalette[7])
 
 
