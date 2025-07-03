@@ -10,7 +10,7 @@ Between 2017 and 2023, a sizable fraction (up to 30%) of the EPA's roughly 1,000
 
 ## Overview
 
-The code in this replication package constructs the analysis file from two main data sources (the EPA's PM2.5 monitor data and hybrid PM2.5 satellite data (SatPM2.5 data V6.GL.02.04) from the Washington University in St. Louis's Atmospheric Composition Analysis Group) using R. Five files run all of the code to generate the data for the ten figures and two tables in the paper. The replicator should expect the code to run for about 5 minutes.
+The code in this replication package constructs the analysis file from two main data sources (the EPA's PM2.5 monitor data and hybrid PM2.5 satellite data (SatPM2.5 data V6.GL.02.04) from the Washington University in St. Louis's Atmospheric Composition Analysis Group) using R. Five files run all of the code to generate the data for the ten figures and two tables in the paper. The replicator should expect the code to run for about five minutes.
 
 ## Data Availability and Provenance Statements
 
