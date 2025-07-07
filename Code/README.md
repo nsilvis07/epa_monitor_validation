@@ -5,12 +5,12 @@
 ## Project Description
 
 
-Between 2017 and 2023, a sizable fraction (up to 30%) of the EPA's roughly 1,000 PM2.5 monitors produced upward-biased readings. Given that ground-level PM2.5 readings are used as a benchmark to verify satellite data, these inaccurate readings have possible consequences beyond the EPA's datasets. This project seeks to understand the extent and implications of this miscalibration by comparing the EPA's original (incorrect) and updated (corrected) datasets and examining them against satellite data.
+Between 2017 and 2023, as many as 30% of the EPA's roughly 1,000 PM2.5 monitors produced upward-biased readings. Given that ground-level PM2.5 readings are used as a benchmark to verify satellite data, these inaccurate readings have possible consequences beyond the EPA's datasets. This project seeks to understand the extent and implications of this miscalibration by comparing the EPA's original (incorrect) and updated (corrected) datasets and examining them against satellite data.
 
 
 ## Overview
 
-The code in this replication package constructs the analysis file from two main data sources (the EPA's PM2.5 monitor data and hybrid PM2.5 satellite data (SatPM2.5 data V6.GL.02.04) from the Washington University in St. Louis's Atmospheric Composition Analysis Group) using R. Five files run all of the code to generate the data for the ten figures and two tables in the paper. The replicator should expect the code to run for about five minutes.
+The code in this replication package constructs the analysis file from two main data sources (the EPA's PM2.5 monitor data and hybrid PM2.5 satellite data (SatPM2.5 data V5.GL.04) from the Washington University in St. Louis's Atmospheric Composition Analysis Group) using R. Five files run all of the code to generate the data for the ten figures and two tables in the paper. The replicator should expect the code to run for about five minutes.
 
 ## Data Availability and Provenance Statements
 
@@ -24,7 +24,7 @@ The code in this replication package constructs the analysis file from two main 
 
 ### License for Data
 
-The SatPM2.5 data V6.GL.02.04 is licensed under a [Creative Commons/CC BY 4.0 license](https://example.com).
+The SatPM2.5 data V5.GL.04 is licensed under a [Creative Commons/CC BY 4.0 license](https://example.com).
 
 ### Summary of Availability
 
@@ -50,9 +50,9 @@ Datafiles:
 
  `daily_88101_2017.csv`; `daily_88101_2018`; `daily_88101_2019.csv`; `daily_88101_2020.csv`; `daily_88101_2021.csv`; `daily_88101_2022.csv`
 
-**SatPM2.5 Data V5.GL.05.02**
+**SatPM2.5 Data V5.GL.04**
 
-Hybrid satellite data (SatPM2.5 Data V5.GL.05.02) were obtained from the Washington University in St. Louis's Atmospheric Analysis Composition Group. Data can be downloaded from https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V5.GL.05.02, under SatPM2.5 data V5.GL.05.02. The data are in the public domain.
+Hybrid satellite data (SatPM2.5 Data V5.GL.04) were obtained from the Washington University in St. Louis's Atmospheric Analysis Composition Group. Data can be downloaded from https://wustl.app.box.com/v/ACAG-V5GL04-GWRPM25/folder/230744006317, under SatPM2.5 data V5.GL.04. The data are in the public domain.
 
 Datafiles: 
 
