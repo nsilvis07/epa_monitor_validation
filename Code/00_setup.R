@@ -7,25 +7,26 @@
 ##############################################################################
 
 
-#### Clear environment
+# ---- Clear environment ----
 
 rm(list = ls())
 
-#### Install neccessary packages
+# ---- Install neccessary packages ----
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
-  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales
+  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales, terra, ncdf4, stringr
 )
 
-#### Set working directories
+# ---- Set working directories ----
 
 main_dir   <- "~/The Lab Dropbox/Zoe Mitchell/EPA PM2.5 Monitor Update Verification"
 data_dir   <- file.path(main_dir, "Data")
+nc_dir <- file.path(data_dir, "Annual-selected")
 output_dir <- file.path(main_dir, "Output")
 
-#### Set parameters
+# ---- Set parameters ----
 
 years_monitors <- 2017:2023
 years_satellite <- 2017:2022
@@ -33,16 +34,22 @@ years_satellite <- 2017:2022
 original_codes <- c(236, 238) 
 updated_codes <- c(736, 738) 
 
-#### Set file paths
+###### Set File Paths ######
+
+# ---- Monitor data files ----
 
 monitor_files <- paste0(data_dir, "/daily_88101_", years_monitors, ".csv")
-satellite_files <- setNames(
-  file.path(data_dir,
-            paste0("V5GL04.HybridPM25.NorthAmerica.", years_satellite, "01-", years_satellite, "12.rda")),
-  years_satellite
-)
 
-#### Set color palettes
+# ---- Satellite data files ----
+
+# Build list of file paths
+satellite_files <- file.path(nc_dir, paste0("V5GL04.HybridPM25.NorthAmerica.", years_satellite, "01-", years_satellite, "12.nc"))
+
+# Name each individual file in the list with the corresponding year
+# This will allow us to easily reference the files by year later on
+satellite_files <- setNames(satellite_files, as.character(years_satellite))
+
+# ---- Set color palettes ----
 
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -55,40 +62,53 @@ source_colors <- c(
 )
 
 
-#### Build Functions
+###### Build Functions ######
 
-#---- Overlay ground-level data with satellite data (impacted and all data) ----
+# ---- Overlay ground-level data with satellite data ----
 
-overlay_monitor_satellite <- function(monitor_data, satellite_files, years, original_label = "Original", updated_label = "Updated", out_names = c("monitor_data_original", "monitor_data_updated", "Satellite")) {
+overlay_monitor_satellite <- function(monitor_data, satellite_files, years,
+                                      original_label = "Original",
+                                      updated_label = "Updated",
+                                      out_names = c("monitor_data_original", "monitor_data_updated", "Satellite")) {
   result_list <- list()
-  for (yr in years_satellite) {
-    mon_sub <- filter(monitor_data, Year == yr)
-    sat_r <- raster(get(load(satellite_files[[as.character(yr)]])))
-    crs(sat_r) <- "+proj=longlat +datum=WGS84"
+  
+  for (yr in years) {
+    mon_sub <- dplyr::filter(monitor_data, Year == yr)
     
-    original_pts <- filter(mon_sub, method_type == original_label)
-    updated_pts  <- filter(mon_sub, method_type == updated_label)
+    # Load satellite raster from .nc file
+    nc_path <- satellite_files[[as.character(yr)]]
+    sat_r_terra <- terra::rast(nc_path)
     
-    coordinates(original_pts) <- ~ longitude + latitude
-    proj4string(original_pts) <- CRS("+proj=longlat +datum=WGS84")
-    coordinates(updated_pts) <- ~ longitude + latitude
-    proj4string(updated_pts) <- CRS("+proj=longlat +datum=WGS84")
+    # Convert to raster::RasterLayer for compatibility with raster functions
+    sat_r <- raster::raster(sat_r_terra)
+    raster::crs(sat_r) <- "+proj=longlat +datum=WGS84"
     
-    # Rasterize each
-    r_original <- rasterize(original_pts, sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
-    r_updated  <- rasterize(updated_pts, sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
+    # Convert monitor data to spatial points
+    original_pts <- dplyr::filter(mon_sub, method_type == original_label)
+    updated_pts  <- dplyr::filter(mon_sub, method_type == updated_label)
     
-    # Stack and extract to dataframe
-    stk <- stack(r_original, r_updated, sat_r)
+    sp::coordinates(original_pts) <- ~ longitude + latitude
+    sp::proj4string(original_pts) <- sp::CRS("+proj=longlat +datum=WGS84")
+    
+    sp::coordinates(updated_pts) <- ~ longitude + latitude
+    sp::proj4string(updated_pts) <- sp::CRS("+proj=longlat +datum=WGS84")
+    
+    # Rasterize monitor values onto the satellite grid
+    r_original <- raster::rasterize(original_pts, sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
+    r_updated  <- raster::rasterize(updated_pts,  sat_r, field = "arithmetic_mean", fun = mean, na.rm = TRUE)
+    
+    # Stack all layers
+    stk <- raster::stack(r_original, r_updated, sat_r)
     names(stk) <- out_names
     
+    # Convert to dataframe
     df <- as.data.frame(stk, xy = TRUE, na.rm = TRUE)
     df$Year <- yr
     result_list[[as.character(yr)]] <- df
   }
-  bind_rows(result_list)
+  
+  dplyr::bind_rows(result_list)
 }
-
 
 
 # ---- Density plot with legend (impacted and all data) ----
@@ -231,3 +251,4 @@ plot_scatter_alldata <- function(df, fn) {
     theme(legend.position="none")
   ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
 }
+

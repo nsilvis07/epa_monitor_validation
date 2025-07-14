@@ -51,17 +51,33 @@ cat(
 # ---- Call function to overlay data ----
 
 monitor_satellite_data_impacted <- overlay_monitor_satellite(
-  monitor_data_impacted, satellite_files, 2017:2022,
-  original_label = "Original", updated_label = "Updated",
-  out_names = c("Original_monitor_data_impacted", "Updated_monitor_data_impacted", "Satellite")
+  monitor_data = monitor_data_impacted,
+  satellite_files = satellite_files,
+  years = 2017:2022,
+  original_label = "Original",
+  updated_label = "Updated"
 )
 
-monitor_satellite_long_impacted <- pivot_longer(
-  monitor_satellite_data_impacted,
-  cols = c("Original_monitor_data_impacted", "Updated_monitor_data_impacted"),
-  names_to = "Source", values_to = "Monitor_PM2.5"
-)
-
-
+# ---- Pivot from wide to long format for easier plotting ----
+# This will allow us to have a single column for monitor PM2.5 values, a single
+# column for satellite PM2.5, and a single column identifying whether the
+# monitor data is origianl or updated.
+monitor_satellite_long_impacted <- monitor_satellite_data_impacted %>%
+  dplyr::rename(
+    Monitor_Original = monitor_data_original,
+    Monitor_Updated = monitor_data_updated
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(Monitor_Original, Monitor_Updated),
+    names_to = "Source",
+    values_to = "Monitor_PM2.5"
+  ) %>%
+  dplyr::mutate(
+    Source = dplyr::recode(Source,
+                           Monitor_Original = "Original",
+                           Monitor_Updated = "Updated")
+  ) %>%
+  dplyr::filter(!is.na(Satellite), !is.na(Monitor_PM2.5)) %>%
+  dplyr::select(x, y, Year, Source, Monitor_PM2.5, Satellite)
 
 

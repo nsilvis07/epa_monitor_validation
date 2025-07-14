@@ -6,25 +6,21 @@
 # UPDATED: 06-16-2025
 ##############################################################################
 
-# Regression and Table
+  # Fit models for Original and Updated
+  original_model <- lm(Monitor_PM2.5 ~ Satellite, data = dplyr::filter(monitor_satellite_long_impacted, Source == "Original"))
+  updated_model  <- lm(Monitor_PM2.5 ~ Satellite, data = dplyr::filter(monitor_satellite_long_impacted, Source == "Updated"))
 
-  # Fit linear models by source
-  original_model_impacted <- lm(Monitor_PM2.5 ~ Satellite, data = filter(monitor_satellite_long_impacted, Source == "Original_monitor_data_impacted"))
-  updated_model_impacted <- lm(Monitor_PM2.5 ~ Satellite, data = filter(monitor_satellite_long_impacted, Source == "Updated_monitor_data_impacted"))
+  # Save regression table
+  output_file <- file.path(output_dir, "regression_results_table_impacted.tex")
   
-  # Output regression table in LaTeX
-  stargazer(
-    original_model_impacted, updated_model_impacted,
-    type = "latex",
-    title = "Regression Results for Original and Updated Data: Impacted Monitors Only",
-    label = "tab:regression",
-    dep.var.labels = c("Monitor PM2.5"),
-    column.labels = c("Original Data", "Updated Data"),
-    covariate.labels = c("Satellite PM2.5", "Intercept"),
-    omit.stat = c("f", "ser"),
-    out = file.path(output_dir, "regression_results_table_impacted.tex")
-  )
-  cat("LaTeX regression table saved to", file.path(output_dir, "regression_results_table_impacted.tex"), "
-")
-
+  stargazer(original_model, updated_model,
+            title = "Regression of Monitor PM2.5 on Satellite PM2.5: Impacted Monitors Only",
+            column.labels = c("Original", "Updated"),
+            covariate.labels = "Satellite PM2.5",
+            dep.var.labels = "Monitor PM2.5",
+            type = "latex",
+            out = output_file)
+  
+  cat("LaTeX regression table saved to", output_file, "\n")
+  
   

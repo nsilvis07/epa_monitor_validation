@@ -25,7 +25,7 @@ This script loads, cleans, and prepares the EPA PM2.5 monitor and satellite data
 
 1. **Ensure `00_setup.R` has been run** to set up the environment and directories.
 2. **Open `01_load_data.R` in RStudio or your preferred R environment.**
-3. **Run the entire script** (recommended: `Cmd + Shift + Enter` on Mac).
+3. **Run the entire script**.
 4. Proceed to run subsequent scripts (`02_*.R`, `03_*.R`, etc.) for analysis and visualization.
 
 ---

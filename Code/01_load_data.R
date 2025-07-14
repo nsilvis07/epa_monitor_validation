@@ -9,7 +9,7 @@
 
 ###### Load and Combine Monitor Data ###### 
 
-# ---- Generate monitor_all data frame by loading and combining ALL (for all
+# ---- Generate monitor_all data frame by loading and combining all (for all
 # years and method codes) PM2.5 monitor data ----
 monitor_all <- bind_rows(lapply(monitor_files, read_csv, show_col_types = FALSE)) %>%
   clean_names() %>% # clean up column names
@@ -26,10 +26,19 @@ monitor_all <- bind_rows(lapply(monitor_files, read_csv, show_col_types = FALSE)
 
 ###### Load Satellite Data ######
 
-# Read in satellite data
-sat_list <- lapply(satellite_files, function(f) {
-  sat_obj <- get(load(f)) # load in satellite data
-  df <- as.data.frame(sat_obj, xy=TRUE) # convert raster to data frame
-  colnames(df) <- c("Longitude","Latitude","Satellite.PM2.5") # rename column names for clarity
-  df
-})
+# Build list of file paths
+satellite_files <- file.path(nc_dir, paste0("V5GL04.HybridPM25.NorthAmerica.", years_satellite, "01-", years_satellite, "12.nc"))
+names(satellite_files) <- as.character(years_satellite)
+
+# Initialize list
+sat_list <- list()
+
+# Loop through files and store in sat_list
+for (i in seq_along(satellite_files)) {
+  sat_data <- satellite_files[i]
+  sat <- rast(sat_data)
+  df_sat <- as.data.frame(sat, xy = TRUE)
+  colnames(df_sat) <- c("Longitude", "Latitude", "Satellite.PM2.5")
+  df_sat$Year <- years_satellite[i]
+  sat_list[[i]] <- df_sat
+}

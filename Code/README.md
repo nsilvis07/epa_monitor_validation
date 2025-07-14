@@ -39,7 +39,7 @@ The SatPM2.5 data V5.GL.04 is licensed under a [Creative Commons/CC BY 4.0 licen
 | Data.Name  | Data.Files | Location | Provided | Citation |
 | -- | -- | -- | -- | -- | 
 | “EPA PM2.5 Monitors Data” | daily_88101_2017.csv; daily_88101_2018; daily_88101_2019.csv; daily_88101_2020.csv; daily_88101_2021.csv; daily_88101_2022.csv| Data/ | TRUE | EPA (2025) |
-| “SatPM2.5 Data V5.GL.05.02” | V5GL04.HybridPM25.NorthAmerica.201701-201712.rda; V5GL04.HybridPM25.NorthAmerica.201801-201812.rda; V5GL04.HybridPM25.NorthAmerica.201901-201912.rda; V5GL04.HybridPM25.NorthAmerica.202001-202012.rda; V5GL04.HybridPM25.NorthAmerica.202101-202112.rda; V5GL04.HybridPM25.NorthAmerica.202201-202212.rda | Data/ | TRUE | van Donkelaar et al. (2024) |  
+| “SatPM2.5 Data V5.GL.05.02” | V5GL04.HybridPM25.NorthAmerica.201701-201712.nc; V5GL04.HybridPM25.NorthAmerica.201801-201812.nc; V5GL04.HybridPM25.NorthAmerica.201901-201912.nc; V5GL04.HybridPM25.NorthAmerica.202001-202012.nc; V5GL04.HybridPM25.NorthAmerica.202101-202112.nc; V5GL04.HybridPM25.NorthAmerica.202201-202212.nc | Data/ | TRUE | van Donkelaar et al. (2024) |  
 
 
 **EPA PM2.5 Monitors Data**
@@ -56,7 +56,7 @@ Hybrid satellite data (SatPM2.5 Data V5.GL.04) were obtained from the Washington
 
 Datafiles: 
 
-`V5GL04.HybridPM25.NorthAmerica.201701-201712.rda`; `V5GL04.HybridPM25.NorthAmerica.201801-201812.rda`; `V5GL04.HybridPM25.NorthAmerica.201901-201912.rda`; `V5GL04.HybridPM25.NorthAmerica.202001-202012.rda`; `V5GL04.HybridPM25.NorthAmerica.202101-202112.rda`; `V5GL04.HybridPM25.NorthAmerica.202201-202212.rda`
+`V5GL04.HybridPM25.NorthAmerica.201701-201712.nc`; `V5GL04.HybridPM25.NorthAmerica.201801-201812.nc`; `V5GL04.HybridPM25.NorthAmerica.201901-201912.nc`; `V5GL04.HybridPM25.NorthAmerica.202001-202012.nc`; `V5GL04.HybridPM25.NorthAmerica.202101-202112.nc`; `V5GL04.HybridPM25.NorthAmerica.202201-202212.nc`
 
 
 ## Dataset List
