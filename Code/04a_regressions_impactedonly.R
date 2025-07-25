@@ -185,3 +185,4 @@ Satellite PM\\textsubscript{2.5} & %s & %s \\\\
   
   message("LaTeX table written to: ", output_file_regression_impacted)
   
+  

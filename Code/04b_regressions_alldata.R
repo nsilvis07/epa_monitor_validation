@@ -8,7 +8,6 @@
 
 ####### Difference in Means Test and Output LaTeX Table ######
 
-
 # ----- Difference in Means Test -----
 
 

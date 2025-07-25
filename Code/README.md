@@ -4,7 +4,6 @@
 
 ## Project Description
 
-
 Between 2017 and 2023, as many as 40% of the EPA's roughly 1,000 PM2.5 monitors produced upward-biased readings. Given that ground-level PM2.5 readings are used as a benchmark to verify satellite data, these inaccurate readings have possible consequences beyond the EPA's datasets. This project seeks to understand the extent and implications of this miscalibration by comparing the EPA's original (incorrect) and updated (corrected) datasets and examining them against satellite data.
 
 
