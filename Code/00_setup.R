@@ -15,13 +15,13 @@ rm(list = ls())
 
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
-  ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris,
-  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales, terra, ncdf4, stringr
+  ggplot2, dplyr, tidyr, tibble, raster, sp, sf, tigris, sandwich,
+  cowplot, grid, gtable, stargazer, smoothr, janitor, readr, units, scales, terra, ncdf4, stringr, systemfit, car, lmtest
 )
 
 # ---- Set working directories ----
 
-main_dir   <- "~/The Lab Dropbox/Zoe Mitchell/EPA PM2.5 Monitor Update Verification"
+main_dir   <- "/Users/loaner/The Lab Dropbox/Zoe Mitchell/EPA PM2.5 Monitor Update Verification"
 data_dir   <- file.path(main_dir, "Data")
 nc_dir <- file.path(data_dir, "Annual-selected")
 output_dir <- file.path(main_dir, "Output")

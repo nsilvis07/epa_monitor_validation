@@ -42,3 +42,4 @@ for (i in seq_along(satellite_files)) {
   df_sat$Year <- years_satellite[i]
   sat_list[[i]] <- df_sat
 }
+
