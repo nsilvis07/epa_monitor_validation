@@ -112,21 +112,37 @@ overlay_monitor_satellite <- function(monitor_data, satellite_files, years,
 
 # ---- Density plot with legend (impacted and all data) ----
 plot_density <- function(df, fn) {
-  df <- mutate(df, Type=factor(method_type, levels=c("Original","Updated")))
-  p <- ggplot(df, aes(arithmetic_mean, fill=method_type, color=method_type)) +
-    geom_density(alpha=0.3, linewidth=0.8) +
-    scale_color_manual(values=c(Original=cbPalette[6],Updated=cbPalette[7])) +
-    scale_fill_manual(values=c(Original=cbPalette[6],Updated=cbPalette[7])) +
-    theme_classic(base_family="Times", base_size=25) +
+  # Recode method_type to use display-friendly labels
+  df <- mutate(df,
+               method_type = factor(method_type,
+                                    levels = c("Original", "Updated"),
+                                    labels = c("Original Data", "Updated Data")))
+
+  p <- ggplot(df, aes(arithmetic_mean, fill = method_type, color = method_type)) +
+    geom_density(alpha = 0.3, linewidth = 0.8) +
+    scale_color_manual(
+      values = c("Original Data" = cbPalette[6], "Updated Data" = cbPalette[7]),
+      name = NULL  # Removes legend title
+    ) +
+    scale_fill_manual(
+      values = c("Original Data" = cbPalette[6], "Updated Data" = cbPalette[7]),
+      name = NULL
+    ) +
+    theme_classic(base_family = "Times", base_size = 25) +
     theme(
       legend.position   = "bottom",
-      legend.key.width  = unit(2,"cm"),
-      legend.key.height = unit(1,"cm"),
-      legend.text       = element_text(size=20)
+      legend.key.width  = unit(2, "cm"),
+      legend.key.height = unit(1, "cm"),
+      legend.text       = element_text(size = 20)
     ) +
-    labs(x="PM2.5 Concentration (Arithmetic Mean)", y="Density")
-  ggsave(file.path(output_dir, fn), p, width=15, height=10, dpi=300)
+    labs(
+      x = "PM2.5 Concentration (Arithmetic Mean)",
+      y = "Density"
+    )
+
+  ggsave(file.path(output_dir, fn), p, width = 15, height = 10, dpi = 300)
 }
+
 
 # ---- Annual averages & differences plot (impacted and all data) ----
 plot_annual_averages <- function(df, fn) {
